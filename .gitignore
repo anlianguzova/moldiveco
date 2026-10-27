@@ -12,3 +12,7 @@
 /.quarto/
 **/*.quarto_ipynb
 Rplots.pdf
+
+# Local only (repo is public): graded quiz answers and instructor notes
+homework/*.gift
+CLAUDE.md
