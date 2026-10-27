@@ -1,0 +1,34 @@
+# Shared format for all session decks (NN_topic.qmd in the repo root).
+# Per-deck YAML only needs title / subtitle / date; anything set there overrides this file.
+project:
+  type: default
+
+author: "Nasta Lianguzova"
+institute: "Faculty of Biology, Shenzhen MSU-BIT University"
+
+format:
+  beamer:
+    slide-level: 2
+    slide-number: true
+    lang: en
+    pdf-engine: xelatex
+    themeoptions:
+      - "compress"
+    include-in-header: styles/beamer_header.tex
+
+mainfont: "Corbel"
+# Code font: DejaVu Sans Mono ships with TinyTeX, loaded by file name
+monofont: "DejaVuSansMono"
+monofontoptions:
+  - Extension=.ttf
+  - BoldFont=*-Bold
+  - ItalicFont=*-Oblique
+  - BoldItalicFont=*-BoldOblique
+
+execute:
+  echo: true
+
+crossref:
+  fig-title: ""
+
+editor: visual

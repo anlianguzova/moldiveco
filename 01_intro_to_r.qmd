@@ -1,0 +1,1441 @@
+---
+title: "Introduction to R"
+subtitle: "Molecular Approaches to Biodiversity and Ecology"
+date: "2026-10-30"
+---
+
+```{r setup}
+#| include: false
+#| cache: false
+#| purl: false
+# Adapted from mathmethr/01_intro_to_r.Rmd (ggplot2 part moved to the Nov 2 session).
+source("R/setup.R")
+```
+
+## About this course
+
+-   How to analyse molecular data in R: from a table of numbers to a figure and a conclusion.
+-   The statistical methods behind most analyses of molecular data: what they do and when to use them.
+-   If time allows: working directly with sequencing results, e.g. assembling a mitochondrial genome.
+
+## Course roadmap
+
+1.  R and data visualization: R basics, ggplot2 (today: R basics)
+2.  Statistical foundations: descriptive statistics, hypothesis testing, linear models, ANOVA, generalized linear models (GLM)
+3.  Multivariate methods: PCA, nMDS, clustering; PERMANOVA if time allows
+4.  Molecular applications: differential expression in RNA-seq, enrichment analysis
+5.  If time allows: genome assembly
+
+## How the course works
+
+-   Each session: lecture + hands-on practice in R.
+-   After each session: a Moodle quiz, required, to be completed before the next session, + optional tasks for bonus points.
+-   AI tools: use them to understand errors and concepts, not to solve tasks for you (details in Moodle).
+
+## Today you will be able to
+
+-   Set up R and RStudio and organise your course folder as an RStudio project
+-   Find your way around the RStudio window and get help on functions
+-   Create variables and vectors and select elements from them
+-   Work with the main data types: numeric, character, logical, factors
+-   Deal with missing values and write a simple function of your own
+-   Store a data table in a data frame and select rows, columns and cells
+-   Read a table from a CSV file and save one
+
+# Getting started with R
+
+## Download and install
+
+Install **R** first, then **RStudio**, an **IDE** (integrated development environment) for R.
+
+1.  **R**: open the Tsinghua University CRAN mirror (fast from China) <https://mirrors.tuna.tsinghua.edu.cn/CRAN/>, then `Download R for Windows -> base` and download the `.exe` installer. Run it and accept the default settings.
+2.  **RStudio**: <https://posit.co/download/rstudio-desktop/>, then download RStudio Desktop for Windows (`.exe`). Run it and accept the default settings.
+3.  Start **RStudio** from the Start menu (not R): RStudio finds R by itself.
+
+*macOS / Linux:* on macOS, download the R `.pkg` for your processor (Apple silicon or Intel) and the RStudio `.dmg`; on Linux, install R from your distribution's packages (e.g. `r-base` on Ubuntu) and the RStudio `.deb`/`.rpm`.
+
+## Your course folder
+
+1.  Create a folder for ALL course materials, e.g. `moldiveco` in `Documents`. This folder will be your **working directory**. Save ALL your code files (`.R`) here.
+2.  Inside it, create a folder `data` for all data files.
+
+You should end up with something like this:
+
+    C:\Users\<your name>\Documents\moldiveco\
+    C:\Users\<your name>\Documents\moldiveco\data\
+
+-   Use only Latin letters, numbers and `_` in folder and file names: no spaces, no Chinese characters.
+-   Windows hides file extensions by default. To see `.R` and `.Rproj`, turn them on in File Explorer: Windows 11: `View -> Show -> File name extensions`; Windows 10: `View` tab, tick `File name extensions`.
+
+*macOS / Linux:* the folder is `/Users/<your name>/Documents/moldiveco/` (macOS) or `/home/<your name>/moldiveco/` (Linux); file extensions are shown in Finder via `Finder -> Settings -> Advanced`.
+
+## The RStudio window
+
+When you first open RStudio, it has four panes:
+
+-   **Source** (top left): your scripts
+-   **Console** (bottom left): R runs your commands here
+-   **Environment / History** (top right): the objects you have created
+-   **Files / Plots / Packages / Help** (bottom right)
+
+## The RStudio window: the four panes
+
+```{r}
+#| echo: false
+#| purl: false
+#| out-width: "95%"
+#| out-height: "86%"
+#| fig-cap: "The four panes of the RStudio window."
+screenshot_placeholder("images/rstudio_panes.png",
+                       "RStudio window, four panes outlined and labelled")
+```
+
+## Arrange the panes your way
+
+-   The position of the panes is not fixed: you can arrange them as you like.
+-   `Tools -> Global Options -> Pane Layout`: choose which pane goes in each corner.
+-   Drag the borders between panes to make a pane bigger or smaller.
+-   Remember the panes by their **names** (Console, Environment...), not by their position: my RStudio may look different from yours.
+-   For example, I keep the Console on the right, next to my script:
+
+## Arrange the panes your way: in RStudio
+
+```{r}
+#| echo: false
+#| purl: false
+#| out-width: "95%"
+#| out-height: "86%"
+#| fig-cap: "A custom pane layout."
+screenshot_placeholder("images/rstudio_custom_layout.png",
+                       "Custom pane layout")
+```
+
+## Customize the appearance
+
+`Tools -> Global Options -> Appearance`:
+
+-   Editor theme: the colours of the code editor, e.g. a dark theme.
+-   Editor font size: the size of the code text.
+-   Zoom: the size of the whole RStudio window.
+
+Changes apply after you click `Apply`. They only change how RStudio looks, not your code.
+
+## Customize the appearance: in RStudio
+
+```{r}
+#| echo: false
+#| purl: false
+#| out-width: "95%"
+#| out-height: "86%"
+#| fig-cap: "`Tools -> Global Options -> Appearance`"
+screenshot_placeholder("images/rstudio_appearance.png",
+                       "Global Options -> Appearance")
+```
+
+## Console vs script
+
+-   **Console**: R runs a command as soon as you press `Enter`. Good for quick checks, but nothing is saved.
+-   **Script**: a text file with your code. Create one with `File -> New File -> R Script` (`Ctrl + Shift + N`). Save it with `Ctrl + S` into your course folder, e.g. `C:\Users\<your name>\Documents\moldiveco\01_intro.R`; then you can run the whole analysis again at any time.
+
+Write all code you want to keep in a script.
+
+*macOS:* `Cmd` instead of `Ctrl` (`Cmd + Shift + N`, `Cmd + S`).
+
+## Console vs script: in RStudio
+
+```{r}
+#| echo: false
+#| purl: false
+#| out-width: "95%"
+#| out-height: "86%"
+#| fig-cap: "Lines typed in a script (left) and their results in the Console (right)."
+screenshot_placeholder("images/rstudio_console_vs_script.png",
+                       "Script in Source pane + its output in Console, both labelled")
+```
+
+## Running code from a script
+
+-   Put the cursor on a line and press `Ctrl + Enter` or click **Run**: the line is sent to the console.
+-   Select several lines first to run them all.
+-   `Ctrl + Shift + Enter` runs the whole script.
+
+*macOS:* `Cmd + Enter` and `Cmd + Shift + Enter`.
+
+## Running code from a script: in RStudio
+
+```{r}
+#| echo: false
+#| purl: false
+#| out-width: "95%"
+#| out-height: "86%"
+#| fig-cap: "Run sends the current line (`1+1`) to the Console, which prints the result."
+screenshot_placeholder("images/rstudio_run_code.png",
+                       "Cursor on a script line, Run button highlighted, result in Console")
+```
+
+## RStudio projects
+
+In this course, always work inside an RStudio **project**: your course folder with a `.Rproj` file in it. RStudio then uses the project folder as the working directory, so you never have to set it by hand.
+
+-   Create the project once: `File -> New Project -> Existing Directory`, then choose your `moldiveco` folder.
+-   Every time you work: double-click `moldiveco.Rproj` in File Explorer. RStudio opens with the working directory already set.
+-   Files inside the project are then found with short paths.
+-   Keep all data files in `data/`, images and plots in `images/`, and scripts (`.R`) in the project folder itself. Then paths are always short and predictable, e.g. `"data/genes.csv"`.
+
+*macOS / Linux:* double-click `moldiveco.Rproj` in Finder / your file manager.
+
+## RStudio projects: in RStudio
+
+```{r}
+#| echo: false
+#| purl: false
+#| out-width: "95%"
+#| out-height: "86%"
+#| fig-cap: "`File -> New Project...`, then Existing Directory and your `moldiveco` folder."
+screenshot_placeholder("images/rstudio_new_project.png",
+                       "New Project dialog -> Existing Directory; project name top right")
+```
+
+## Without a project: setting the working directory
+
+If you open a script without its project, set the working directory yourself:
+
+1.  Menu `Session -> Set Working Directory -> To Source File Location` (once your script is saved).
+2.  Menu `Session -> Set Working Directory -> Choose Directory...`, then pick your course folder.
+3.  In the `Files` pane, go to the folder with your code, then `More (gear icon) -> Set As Working Directory`.
+4.  Type the path in quotation marks as the argument of `setwd()` (why `/` and not `\`: see "File paths on Windows"):
+
+```{r}
+#| eval: false
+setwd("C:/Users/student/Documents/moldiveco")
+```
+
+*macOS / Linux:* `setwd("~/Documents/moldiveco")`, where `~` is your home folder.
+
+## Without a project: in RStudio
+
+```{r}
+#| echo: false
+#| purl: false
+#| out-width: "95%"
+#| out-height: "86%"
+#| fig-cap: "`Session -> Set Working Directory -> Choose Directory...`"
+screenshot_placeholder("images/rstudio_set_working_dir.png",
+                       "Session -> Set Working Directory -> Choose Directory...")
+```
+
+## File paths on Windows
+
+A **file path** is the address of a file or folder. File Explorer shows paths with backslashes: `C:\Users\student\Documents\moldiveco`. If you paste such a path into R as it is, you get an error, because inside R text `\` starts a special character (e.g. `\n` is a new line):
+
+```{r}
+#| eval: false
+setwd("C:\Users\student\Documents\moldiveco")
+# Error: '\U' used without hex digits in character string
+```
+
+In R, write Windows paths with `/` (recommended) or with a double backslash `\\`:
+
+```{r}
+#| eval: false
+setwd("C:/Users/student/Documents/moldiveco")
+setwd("C:\\Users\\student\\Documents\\moldiveco")
+```
+
+Inside an RStudio project you rarely need a full path: use a **relative path**, which starts from the working directory, e.g. `"data/genes.csv"`.
+
+*macOS / Linux:* paths already use `/`, e.g. `/Users/student/Documents/moldiveco`, so you can paste them as they are.
+
+## How to get help
+
+1.  In RStudio, put the cursor on a function name, e.g. `setwd`, and press `F1`.
+2.  Type a question mark before the function name and run the line: `?setwd`.
+3.  Use the function `help()`:
+
+```{r}
+#| eval: false
+#| script: "comment"
+help("setwd")
+```
+
+*macOS:* on a laptop keyboard you may need `Fn + F1`.
+
+## How to get help: in RStudio
+
+```{r}
+#| echo: false
+#| purl: false
+#| out-width: "95%"
+#| out-height: "86%"
+#| fig-cap: "`help(\"setwd\")` opens this page: read Usage and Arguments first."
+screenshot_placeholder("images/rstudio_help_pane.png",
+                       "Help pane with the setwd() help page; Usage and Arguments labelled")
+```
+
+## RStudio settings
+
+All RStudio settings are in the menu `Tools -> Global Options`.
+
+-   Restoring the workspace from the last session: better turn it off, because "ghost" objects from old sessions cause errors. On the `General` tab, untick `Restore .RData into workspace at startup` and set `Save workspace to .RData on exit` to `Never`.
+-   Wrapping long lines in the code editor is convenient: on the `Code` tab, tick `Soft-wrap R source files`.
+
+## RStudio settings: General tab
+
+```{r}
+#| echo: false
+#| purl: false
+#| out-width: "95%"
+#| out-height: "86%"
+#| fig-cap: "General tab: untick Restore .RData, set Save workspace to Never."
+screenshot_placeholder("images/rstudio_global_options.png",
+                       "Global Options -> General: Restore .RData off, Save workspace Never")
+```
+
+## RStudio settings: Code tab
+
+```{r}
+#| echo: false
+#| purl: false
+#| out-width: "95%"
+#| out-height: "86%"
+#| fig-cap: "Code tab: tick Soft-wrap R source files."
+screenshot_placeholder("images/rstudio_soft_wrap.png",
+                       "Global Options -> Code: Soft-wrap R source files")
+```
+
+## Installing packages
+
+A **package** adds new functions to R. Packages are downloaded from **CRAN**; choose a nearby CRAN mirror so that downloads are fast.
+
+-   `Tools -> Global Options -> Packages -> Primary CRAN repository`: choose a mirror in China (e.g. Tsinghua).
+-   Or run once per session: `options(repos = c(CRAN = "https://mirrors.tuna.tsinghua.edu.cn/CRAN/"))`
+
+Install a package once (`install.packages()` or the `Install` button in the `Packages` pane); load it every time you start R with `library()`. More on this below, with tibbles.
+
+On Windows, CRAN gives ready-to-use packages. They are saved in your personal library, e.g. `C:\Users\<your name>\AppData\Local\R\win-library\<R version>`; `.libPaths()` shows where.
+
+*macOS / Linux:* macOS also gets ready-to-use packages; on Linux, packages are compiled from source, so installation is slower and some packages need extra system libraries.
+
+## Installing packages: in RStudio
+
+```{r}
+#| echo: false
+#| purl: false
+#| out-width: "95%"
+#| out-height: "86%"
+#| fig-cap: "Packages: click Change... and choose a CRAN mirror in China."
+screenshot_placeholder("images/rstudio_install_packages.png",
+                       "Packages options with a Chinese CRAN mirror + Install Packages dialog")
+```
+
+## Comments
+
+**Comments** in code start with the `#` symbol.
+
+```{r}
+# this is a comment, R will not run it
+```
+
+## Useful RStudio keyboard shortcuts
+
+-   `Ctrl + Shift + N`: new script; `Ctrl + S`: save the script.
+-   `Ctrl + Enter`: send the current line from the script to the console; if several lines are selected, all of them are run.
+-   `Ctrl + Shift + Enter`: run the whole script.
+-   `Ctrl + Shift + C`: comment/uncomment the selected lines.
+-   `Alt` + drag the mouse: select a rectangular block of text (several lines at once).
+-   `Tab` or `Ctrl + Space`: press after you start typing a function or variable name to get a list of suggestions. This helps you type faster and with fewer mistakes.
+-   `Ctrl + L`: clear the console.
+-   `Alt + -`: type the assignment operator (`<-`).
+-   `Ctrl + Shift + M`: type the pipe operator `%>%`. We start using it on Nov 2; it needs the `dplyr` package (part of `tidyverse`).
+
+*macOS:* `Cmd` instead of `Ctrl`, and `Option` instead of `Alt` (but `Ctrl + L` and `Ctrl + Space` stay the same).
+
+## Type code with English input
+
+R understands only "half-width" (English) symbols. Brackets, commas and quotation marks typed with a Chinese input method look similar, but they are different characters, and R stops with an error:
+
+```{r}
+#| echo: false
+#| purl: false
+#| out-width: "95%"
+#| out-height: "86%"
+#| fig-cap: "Full-width brackets and commas: R stops with unexpected input."
+screenshot_placeholder("images/fullwidth_error.png",
+                       "Full-width brackets and commas: unexpected input error")
+```
+
+```{r}
+#| eval: false
+c(2, 4, 6) # half-width: works
+```
+
+```{r}
+#| include: false
+#| eval: false
+#| script: "comment"
+c（2，4，6） # full-width: Error: unexpected input
+c(2, 4, 6) # half-width: works
+```
+
+If R reports `unexpected input` in a line that looks correct, retype its brackets, commas and quotation marks in English input.
+
+## R as a calculator
+
+R can do arithmetic with **operators** (`+`, `-`, `*`, `/`, `^`) and with functions such as `sqrt()`; `:` makes a sequence of numbers. Operators, functions and vectors are explained in the next slides.
+
+```{r}
+2+2
+1024/2
+1:10
+34*4
+2^4
+sqrt(27)
+```
+
+## Variables
+
+The **assignment operator** is the arrow `<-`. It (usually) works from right to left: the value of the expression on the right is stored in the object on the left. Type it with `Alt + -`.
+
+`=` also works for assignment (`x = 5`), but in this course we use `<-`. `=` is used inside functions to give arguments, e.g. `seq(from = 1, to = 5)`.
+
+A **variable** is a container: you can put different data and even functions into it. Anything stored in R under a name is an **object**.
+
+Variable names can contain upper- and lower-case Latin letters, dots (`.`), underscores (`_`) and numbers, and must start with a letter. Choose clear, meaningful names.
+
+```{r}
+var_1 <- 1024 / 2
+1238 * 3 -> var_2
+var_2
+```
+
+*macOS:* `Option + -` types `<-`.
+
+## How to name a variable?
+
+-   `a`: bad, and so are `b`, `c` or `x`. Sometimes acceptable, though :)
+-   `var1`: bad, but better
+-   `var_1`: bad, but better
+-   `seqlength`: meaningful, but hard to read
+-   `seq_length`, `gc_content` or `read_count`: good, meaningful and easy to read
+
+The Environment pane shows all the objects you have created.
+
+## How to name a variable: the Environment pane
+
+```{r}
+#| echo: false
+#| purl: false
+#| out-width: "95%"
+#| out-height: "86%"
+#| fig-cap: "The Environment pane lists `var_1` and `var_2` with their values."
+screenshot_placeholder("images/rstudio_environment.png",
+                       "Environment pane with var_1 and var_2; names and values labelled")
+```
+
+## Vectors
+
+R can store data in different kinds of objects. R is a vector language: most objects in R are vectors.
+
+There are two kinds of vectors:
+
+-   atomic vectors: all elements have the same data type;
+-   lists: elements can have different types.
+
+Examples of atomic vectors:
+
+```{r}
+23
+sqrt(25)
+```
+
+These are vectors of length 1: a single value is also a vector.
+
+A **vector** is one object that holds one or more values, all of the same type.
+
+## Some ways to create vectors
+
+-   The `:` operator creates integer vectors with consecutive values.
+
+```{r}
+1:10 # from 1 to 10
+-5:3 # from -5 to 3
+```
+
+-   The **function** `seq()` creates sequences of numbers.
+
+```{r}
+seq(from = 1, to = 5, by = 0.5)
+```
+
+`seq()` is a function, and `from`, `to` and `by` are its **arguments**. Functions and arguments are explained in more detail later.
+
+## Some ways to create vectors
+
+-   The function `c()` (from "concatenate").
+
+```{r}
+#| eval: false
+#| script: "comment"
+?c # read the help page for this function
+```
+
+The function `c()` takes any number of arguments separated by commas and puts them together into a vector.
+
+```{r}
+c(2, 4, 6)
+c(-9.3, 0, 2.17, 21.3)
+```
+
+Vectors can be stored in variables to use later
+
+```{r}
+vect_num <- -11:12 # numeric vector from -11 to 12, stored in vect_num
+```
+
+## Indexing vectors
+
+With the `[]` operator, you can get some elements of a vector. Inside the square brackets, give the position numbers (the **index**) of one or several elements.
+
+```{r}
+vect_num[1] # the first element of vect_num
+vect_num[10] # the 10th element
+vect_num[22]
+```
+
+## Indexing vectors
+
+To get several elements, give their positions as a vector. For example, to get elements 3 to 5, we need a vector that contains 3, 4 and 5:
+
+```{r}
+3:5
+```
+
+If we put it in square brackets, we get the elements at these positions
+
+```{r}
+vect_num[3:5]
+```
+
+## Selecting elements from a vector
+
+In the same way, if the elements you need are not next to each other, give a vector of their positions made with `c()`. `c(2, 4, 6)` is a vector containing 2, 4 and 6, so
+
+```{r}
+vect_num[c(2, 4, 6)] # returns the 2nd, 4th and 6th elements
+vect_num[c(1, 10, 20)] # returns the 1st, 10th and 20th elements
+```
+
+## Why does this give an error?
+
+We want the 1st, 3rd and 5th elements, so we list them inside the square brackets:
+
+```{r}
+#| eval: false
+vect_num[1, 3, 5]
+```
+
+Why does this give an error?
+
+## Why does this give an error? Answer
+
+```{r}
+#| error: true
+vect_num[1, 3, 5]
+```
+
+Inside `[ ]`, commas separate dimensions: rows and columns of a table (coming later). A vector has only one dimension, so its positions must be combined into one vector with `c()`:
+
+```{r}
+vect_num[c(1, 3, 5)] # correct
+```
+
+## Combining vectors
+
+The function `c()` can combine several vectors into one
+
+```{r}
+c(1, 1, 5:9)
+c(vect_num, vect_num)
+c(100, vect_num)
+```
+
+Getting elements 1, 3, 5 and 22 to 24
+
+```{r}
+vect_num[c(1, 3, 5, 22:24)]
+```
+
+## Your turn 1: vectors
+
+The lengths (bp) of 8 sequencing reads:
+
+```{r}
+read_lengths <- c(150, 148, 151, 90, 150, 149, 75, 150)
+```
+
+1.  Get the 2nd and the 4th read lengths.
+2.  Get the last element, using `length()` instead of typing 8.
+3.  Make a vector `all_reads` that combines `read_lengths` with two more reads, 120 and 151 bp. How many elements does it have?
+
+## Your turn 1: answers
+
+```{r}
+read_lengths[c(2, 4)]
+read_lengths[length(read_lengths)]
+all_reads <- c(read_lengths, 120, 151)
+length(all_reads)
+```
+
+```{r}
+#| student: true
+#| include: false
+#| eval: false
+read_lengths[c(___, ___)]
+read_lengths[___(read_lengths)]
+all_reads <- ___(read_lengths, 120, 151)
+___(all_reads)
+```
+
+# Data types in R
+
+## Numeric data
+
+The **data type** of everything you saw in the previous section is **numeric**. R stores numbers in two ways:
+
+-   **integer**: whole numbers, e.g. the numbers made by `:`;
+-   **double**: numbers that can have a decimal part. Every number you type, even `5`, is stored as a double.
+
+The function `class()` tells you what kind of data an object holds:
+
+```{r}
+class(1:10)
+class(2.17)
+class(5)
+```
+
+`class()` shows doubles simply as `"numeric"`. For calculations the difference almost never matters.
+
+## Character data
+
+Each text element (a "string", or **character** value) must be surrounded by quotation marks. Double and single quotes work the same; use one kind inside the other when the text contains quotes, e.g. `"it's"` or `'the "A" allele'`.
+
+```{r}
+"this is text"
+'this is text, too'
+```
+
+Text values can be combined into a character vector.
+
+```{r}
+dna_seq <- c("A", "T", "G", "C", "T", "A") # a short DNA fragment
+dna_seq # the whole vector
+```
+
+## Selecting from a character vector
+
+Getting the first and the last elements. We know that here there are 6 elements.
+
+```{r}
+dna_seq[c(1, 6)]
+```
+
+Getting elements 5 to 10. `dna_seq` has only 6 elements, so first we glue a longer vector from two copies of it.
+
+```{r}
+double_seq <- c(dna_seq, dna_seq)
+double_seq
+double_seq[5:10] # elements 5 to 10
+```
+
+## Logical data
+
+```{r}
+TRUE # true
+FALSE # false
+```
+
+**Logical** values can be shortened to their first capital letters. **But better don't do this**: the code is easier to read in full.
+
+```{r}
+c(T, T, T, T, F, F, T, T)
+```
+
+Creating a logical vector.
+
+```{r}
+c(TRUE, TRUE, TRUE, FALSE, FALSE, TRUE)
+```
+
+One more logical vector
+
+```{r}
+short_logical_vector <- c(FALSE, TRUE)
+```
+
+## A vector holds one data type
+
+If you mix types in one vector, R converts all values to one type, in the order logical -> numeric -> character:
+
+```{r}
+c(1, "A") # a number and text: everything becomes text
+class(c(1, "A"))
+c(1, TRUE) # a number and a logical: TRUE becomes 1
+class(c(1, TRUE))
+```
+
+## Long vectors
+
+To create long vectors of repeated elements, use the function `rep()`.
+
+```{r}
+rep(x = 1, times = 3) # 1 is repeated 3 times
+rep(x = "A", times = 5) # "A" is repeated 5 times (a poly-A tail!)
+rep(x = TRUE, times = 2) # TRUE is repeated 2 times
+```
+
+## What is a function?
+
+A function is a named command that does something. You call it by its name with round brackets: `name(...)`.
+
+The arguments are the inputs inside the brackets. Each is written `name = value`, and arguments are separated by commas. Some arguments have default values, so you can leave them out.
+
+```{r}
+rep(x = "A", times = 5) # function rep(), arguments x and times
+```
+
+## Function arguments
+
+In R, you can leave out the names of function arguments if you give them in the order listed in the help page of the function.
+
+```{r}
+rep(TRUE, 5) # TRUE repeated 5 times, arguments without names
+```
+
+Let's create a logical vector where TRUE is repeated 3 times, FALSE 3 times and TRUE 4 times, and store it in the variable `vect_log`.
+
+```{r}
+vect_log <- c(rep(TRUE, 3), rep(FALSE, 3), rep(TRUE, 4))
+vect_log
+```
+
+## Logical operators
+
+**Logical operators** compare values or combine conditions. The result is a logical vector: `TRUE` or `FALSE` for each element.
+
+```{=latex}
+\scriptsize
+\begin{tabular}{lll}
+\hline
+Operator & Meaning & Example\\
+\hline
+\texttt{>} & greater than & \texttt{vect\_num > 0}\\
+\texttt{<} & less than & \texttt{vect\_num < -5}\\
+\texttt{>=} & greater than or equal to & \texttt{vect\_num >= 8}\\
+\texttt{<=} & less than or equal to & \texttt{vect\_num <= -8}\\
+\texttt{==} & equal to & \texttt{double\_seq == "G"}\\
+\texttt{!=} & not equal to & \texttt{double\_seq != "A"}\\
+\texttt{!} & not: turns \texttt{TRUE} into \texttt{FALSE} and back & \texttt{!(double\_seq == "G")}\\
+\texttt{\&} & and: both conditions are \texttt{TRUE} & \texttt{vect\_num > 0 \& vect\_num < 5}\\
+\texttt{|} & or: at least one condition is \texttt{TRUE} & \texttt{vect\_num < -10 | vect\_num > 10}\\
+\hline
+\end{tabular}
+```
+
+## Using logical vectors to filter data
+
+Logical vectors made with logical operators can be used for **filtering** data.
+
+Remember our character vector:
+
+```{r}
+double_seq
+```
+
+## Example 1
+
+Getting only the guanines (`"G"`).
+
+We can create a logical vector that is TRUE only for the 3rd and 9th elements.
+
+```{r}
+f_g <- double_seq == "G"
+f_g
+```
+
+We can use this logical vector as a filter to get data from `double_seq`
+
+```{r}
+double_seq[f_g]
+```
+
+## Example 2
+
+Getting all G and C from `double_seq` (to count the GC content). We already have the G filter, so we create a filter for C.
+
+```{r}
+f_c <- double_seq == "C"
+```
+
+"G or C" can be written with the logical "or" (`|`).
+
+```{r}
+f_g | f_c
+```
+
+Done: we have extracted all G and C.
+
+```{r}
+double_seq[f_g | f_c]
+```
+
+## A shorter way to write it
+
+The same thing can be written in a shorter way.
+
+In one line, very hard to read:
+
+```{r}
+double_seq[double_seq == "G" | double_seq == "C"]
+```
+
+With a separate filter, easier to read:
+
+```{r}
+f_gc <- double_seq == "G" | double_seq == "C"
+double_seq[f_gc]
+```
+
+## The same filter in the tidyverse
+
+The **tidyverse** is a collection of packages for data work, including `tibble`, `dplyr` and `ggplot2`. A preview of the same G/C filter with `filter()` from `dplyr`, on a data frame (a table, explained later):
+
+```{r}
+library(dplyr) # part of the tidyverse
+filter(data.frame(base = double_seq), base %in% c("G", "C"))
+```
+
+We will use the tidyverse from Nov 2. The book uses the pipe `|>`; in this course we use `%>%`, which works the same way.
+
+Wickham H., Çetinkaya-Rundel M., Grolemund G. (2023). *R for Data Science*, 2nd ed. O'Reilly. Free online: <https://r4ds.hadley.nz>.
+
+## GC content from a logical vector
+
+In calculations, `TRUE` counts as 1 and `FALSE` as 0. So `sum()` of a logical vector counts the `TRUE` values, and `mean()` gives their proportion.
+
+```{r}
+f_gc
+sum(f_gc) # number of G and C bases
+mean(f_gc) # GC content: the proportion of G and C, 4 of 12 bases
+```
+
+The operator `%in%` checks whether each value is one of several values: a shorter way to write the same filter.
+
+```{r}
+f_gc2 <- double_seq %in% c("G", "C")
+mean(f_gc2)
+```
+
+## Example 3
+
+We had a numeric vector.
+
+```{r}
+vect_num
+```
+
+Getting only the values greater than 0 from `vect_num`.
+
+```{r}
+vect_num[vect_num > 0]
+```
+
+## Example 4
+
+Getting from `vect_num` all numbers that are either less than or equal to -8, or greater than or equal to 8.
+
+```{r}
+f_min8_plus8 <- (vect_num <= -8) | (vect_num >= 8)
+vect_num[f_min8_plus8]
+```
+
+## Your turn 2: logical filtering
+
+Use the vector `read_lengths` from "Your turn 1".
+
+1.  Get the reads shorter than 100 bp.
+2.  How many reads are exactly 150 bp long? (Hint: `TRUE` counts as 1.)
+3.  What proportion of the reads are at least 148 bp long?
+
+## Your turn 2: answers
+
+```{r}
+read_lengths[read_lengths < 100]
+sum(read_lengths == 150)
+mean(read_lengths >= 148)
+```
+
+```{r}
+#| student: true
+#| include: false
+#| eval: false
+read_lengths[read_lengths ___ 100]
+___(read_lengths == 150)
+mean(read_lengths >= ___)
+```
+
+## Factors
+
+A **factor** is the R object for discrete (= **categorical**) data. A factor defines the categories of a variable as a fixed set of levels: R knows which values are allowed and in which order the groups come. Factors are built on integer vectors and have extra attributes (`class` and `levels`).
+
+For example, you genotyped 8 individuals at one SNP (a single-nucleotide polymorphism) with the alleles A and G. There are many individuals, but only three possible genotypes.
+
+```{r}
+snp_genotypes <- c("AG", "AA", "AA", "AA", "GG", "GG", "GG", "GG")
+snp_genotypes # this is a character vector
+```
+
+"GG" means the same thing for every individual: genotype is a variable with three possible categories. A factor stores each value as a number matched with a label (called a **level**): the genotype name. Later in the course, statistical models (ANOVA, GLM) use factors to compare groups, so categorical predictors must be factors. We can create the factor "genotype".
+
+## Creating a factor
+
+```{r}
+factor(snp_genotypes)
+```
+
+The levels of this factor are
+
+-   1: AA,
+-   2: AG,
+-   3: GG.
+
+By default, R sorts the levels alphabetically. You can change the order (see `help("factor")`). We will need this later.
+
+```{r}
+double_seq # character vector
+```
+
+Creating a factor from a character vector and storing it in a variable
+
+```{r}
+f_double_seq <- factor(double_seq)
+```
+
+## What kind of data is stored in a variable?
+
+To find out what kind of data is stored in a variable, use the function `class()`
+
+```{r}
+class(f_double_seq)
+class(vect_log)
+class(vect_num)
+class(dna_seq)
+```
+
+## Built-in constants in R
+
+Built-in constants in R: `NA`, `NULL`, `NaN`, `Inf`
+
+-   **NA**: "not available". The object exists, but its property was not measured or recorded.
+-   **NULL**: empty, there is simply nothing.
+-   **NaN**: "not a number".
+-   **Inf**: "infinity".
+
+```{r}
+dna_seq_1 <- c("A", "T", NA, "C", "T", "A") # NA: 3rd base not read
+length(NULL) # NULL: nothing, so no elements
+0 / 0 # NaN
+1 / 0 # Inf
+```
+
+## An element that does not exist
+
+What happens if you ask for an element number that does not exist?
+
+. . .
+
+R returns NA, because there is no such element.
+
+```{r}
+dna_seq_1[198]
+```
+
+## Arithmetic with vectors
+
+Operations work element by element: `vect_num + 2` adds 2 to every element.
+
+```{r}
+vect_num
+
+vect_num + 2
+vect_num * 2
+```
+
+## Arithmetic with vectors
+
+```{r}
+vect_num * (-2)
+vect_num^2
+```
+
+Two vectors of the same length are combined position by position:
+
+```{r}
+c(1, 2, 3) + c(10, 20, 30)
+```
+
+## Operations on vectors with constants
+
+```{r}
+counts_na <- c(1, 3, NA, 7, 0, 22:24)
+```
+
+What happens to NA?
+
+```{r}
+counts_na + 2 # NA stays NA
+counts_na * 0 # NA stays NA
+counts_na / 0  # NA stays NA
+```
+
+*But in the last case you will also see:*
+
+-   Inf when a number is divided by zero;
+-   NaN when zero is divided by zero.
+
+You also get NaN if you take the square root of a negative number.
+
+```{r}
+sqrt(-1)
+```
+
+## Functions in R
+
+You have already seen many functions: you can recognise them by the brackets after the name. Let's meet a few more and learn to write our own functions. Your own functions let you automate repeated steps and make code easy to read.
+
+Here is our vector
+
+```{r}
+counts_na
+```
+
+The length of a vector is given by the function `length()`
+
+```{r}
+length(counts_na)
+```
+
+The sum of its elements, with the function `sum()`
+
+```{r}
+sum(counts_na)
+```
+
+Oops! For some reason we got `NA`.
+
+## Functions and vectors with constants
+
+The function `sum()` has the argument `na.rm`, which is `FALSE` by default: NAs are not removed before the sum is calculated, so the result is NA.
+
+If we give `sum()` the argument `na.rm = TRUE`, we get the correct sum
+
+```{r}
+sum(counts_na, na.rm = TRUE)
+```
+
+The same is true for `mean()`, and for `max()` and `min()` (the largest and the smallest value)
+
+```{r}
+mean(counts_na, na.rm = TRUE)
+max(counts_na, na.rm = TRUE) # the largest value
+min(counts_na, na.rm = TRUE) # the smallest value
+```
+
+## User-defined functions
+
+Let's write our own function `mmean()` that calculates the mean of a vector and ignores missing values (`NA`) by default. This is a **user-defined function**.
+
+```{r}
+mmean <- function(x){
+  mean(x, na.rm = TRUE)
+  }
+```
+
+In this code:
+
+-   `mmean` is a variable, the name of the function.
+-   We store in it the function created by `function()`, a function that makes functions. The brackets list the arguments (names of the objects we give to the function to work with).
+-   `{ }`: the curly brackets contain the body of the function: the steps to perform with the arguments.
+
+## Return in the function body
+
+Larger functions often also have the instruction `return()`, which says what exactly the function should return. This is how our function looks with it.
+
+```{r}
+mmean <- function(x){
+  res <- mean(x, na.rm = TRUE)
+  return(res)
+}
+```
+
+Let's check our function on the vector with NA, against the built-in one
+
+```{r}
+mean(counts_na) # without na.rm: NA
+mean(counts_na, na.rm = TRUE)
+mmean(counts_na) # our function ignores NA by default
+```
+
+## Matrices
+
+A **matrix** is a two-dimensional object, similar to an atomic vector but with the extra attribute `dim`.
+
+For example, a small count matrix: how many sequencing reads came from each of 3 genes (rows) in each of 3 samples (columns). R fills the matrix column by column.
+
+```{r}
+counts <- matrix(c(1520, 980, 12, 1385, 1043, 30, 1610, 875, 7),
+                 nrow = 3, ncol = 3)
+rownames(counts) <- c("ACTB", "GAPDH", "MYC")
+colnames(counts) <- c("sample_1", "sample_2", "sample_3")
+counts
+```
+
+The dimensions of a matrix are set by two arguments: `nrow` (number of rows) and `ncol` (number of columns).
+
+## Matrices: row and column names
+
+`rownames()` and `colnames()` give names to the rows and columns of a matrix:
+
+```{r}
+rownames(counts)
+colnames(counts)
+```
+
+The row names are real human gene symbols. ACTB (beta-actin) and GAPDH are **housekeeping genes**: they are needed in almost every cell and have high, stable expression. MYC is a regulatory gene, usually expressed at lower levels. The counts themselves are invented.
+
+## Lists
+
+A **list** is a data format where each element can be of any type and any length.
+
+```{r}
+my_list <- list(
+  12:16,
+  snp_genotypes,
+  c(TRUE, TRUE, TRUE, FALSE, FALSE, TRUE)
+)
+
+str(my_list)
+```
+
+## Data frames: two-dimensional data structures
+
+A **data frame** is one of the ways to store tables in R. It is built on lists and also has some properties of matrices. It has the attributes `rownames` (row names) and `colnames` (column names). The `names` of a data frame are the same as its `colnames`.
+
+Let's create a data frame. First, we create vectors with data for the variables.
+
+```{r}
+ids <- c("gene01", "gene02", "gene03", "gene04", "gene05",
+         "gene06", "gene07", "gene08", "gene09") # character: gene IDs
+exons <- c(9, 5, 1, 14, 8, 4, 3, 21, 11) # numeric: number of exons
+strand <- c("+", "-", "-", "+", "+", "-", "+", "-", "-") # character: strand
+# numeric: gene length, bp
+len_bp <- c(5230, 18740, 960, 9410, 61200, 2870, 13350, 27600, 7980)
+```
+
+## Creating a data frame
+
+Now we put these vectors into a data frame
+
+```{r}
+my_genes <- data.frame(gene_id = ids, n_exons = exons, length_bp = len_bp,
+                       strand = strand)
+```
+
+We can check that we really created an object of class data.frame
+
+```{r}
+class(my_genes) # check that it is really a data frame
+```
+
+## Converting other objects to a data frame
+
+For example, from a matrix...
+
+```{r}
+counts_data <- as.data.frame(counts)
+str(counts_data)
+```
+
+## Looking at a data frame
+
+There are several ways to look at the contents of a data frame.
+
+```{r}
+#| results: "hide"
+my_genes # print the data frame
+head(my_genes)
+tail(my_genes)
+```
+
+```{r}
+#| eval: false
+#| script: "comment"
+View(my_genes) # spreadsheet view in RStudio
+# fix(my_genes) # manual editing: avoid it, it leaves no record
+```
+
+You can also get the number of rows and columns of a data frame.
+
+```{r}
+nrow(my_genes)
+ncol(my_genes)
+length(my_genes) # gives the number of columns
+```
+
+## Indexing in data frames
+
+Getting a column (variable) with the `$` operator and the variable name
+
+```{r}
+my_genes$n_exons
+my_genes$length_bp
+```
+
+## Indexing in data frames
+
+Each cell in a data frame has coordinates `[row, column]`
+
+```{r}
+my_genes[2, 3] # 2nd row, 3rd column
+my_genes[2, ] # the whole 2nd row
+my_genes[1:9, 2] # rows 1 to 9 of the 2nd column
+my_genes[, 2] # the whole 2nd column
+```
+
+## Expanding a data frame
+
+Adding a column.
+
+```{r}
+my_genes$chrom <- c("chr1", "chr1", "chr2", "chr3", "chr2",
+                    "chr3", "chrX", "chr2", "chr3")
+my_genes
+```
+
+## Adding a row
+
+```{r}
+my_genes_new <- data.frame(gene_id = "gene10", n_exons = 5,
+                           length_bp = 1840, strand = "+", chrom = "chr1")
+my_genes_final <- rbind(my_genes, my_genes_new)
+my_genes_final
+```
+
+## Your turn 3: selecting from a data frame
+
+Use `my_genes` (with the `chrom` column).
+
+1.  Get the strand of the 5th gene in two ways: with `$` and with `[row, column]`.
+2.  Get the IDs of all genes on the minus strand (`"-"`).
+3.  Get rows 2 to 4 of the columns `gene_id` and `length_bp` (columns 1 and 3).
+
+## Your turn 3: answers
+
+```{r}
+my_genes$strand[5]
+my_genes[5, 4]
+my_genes$gene_id[my_genes$strand == "-"]
+my_genes[2:4, c(1, 3)]
+```
+
+```{r}
+#| student: true
+#| include: false
+#| eval: false
+my_genes$___[5]
+my_genes[___, ___]
+my_genes$gene_id[my_genes$strand ___ "-"]
+my_genes[___, c(___, ___)]
+```
+
+## Tibbles
+
+A **tibble** is a slightly modified data frame with a similar structure; it is a newer addition to R. Unlike data frames, tibbles have the extra class `tbl_df`, which makes them behave a little differently. Tibbles come from the package `tibble`, part of the tidyverse.
+
+You install a package into your local library only once. So the `install.packages()` line should not stay in the final version of your script.
+
+```{r}
+# install.packages("tidyverse")
+```
+
+In each R session, you must load a package before you use it. Next time you start R, you will have to load the packages again. So the lines that load packages with `library()` must stay in the final version of your script.
+
+```{r}
+library(tibble)
+my_tibble <- tibble(gene_id = ids, n_exons = exons,
+                    length_bp = len_bp, strand = strand)
+str(my_tibble)
+```
+
+## Tibbles
+
+One difference between tibbles and data frames is how they are created. When you create a tibble, you can already use a column you have just created. Here `length_kb` is calculated from `length_bp` (`data.frame()` cannot do this):
+
+```{r}
+my_tibble2 <- tibble(gene_id = ids, length_bp = len_bp,
+                     length_kb = length_bp / 1000, strand = strand)
+my_tibble2
+```
+
+The tidyverse packages (e.g. `dplyr`, `ggplot2`) are built to work with tibbles. Tibbles also respond differently to some functions.
+
+# Reading and writing data
+
+## Reading a CSV file
+
+A **CSV file** is a plain-text table: one row per line, values separated by commas. Save `genes.csv` (made-up practice data, from Moodle) into the `data` folder of your course project, then read it:
+
+```{r}
+genes <- read.csv("data/genes.csv")
+head(genes)
+```
+
+`"data/genes.csv"` is a relative path: R looks for the file inside the working directory, i.e. your project folder. If R says `cannot open file ... No such file or directory`, check that you opened the project and that the file is in `data`.
+
+## Checking what you have read
+
+Always check the structure of a table you have just read:
+
+```{r}
+str(genes)
+```
+
+`read.csv()` returns a data frame: 15 observations (genes) of 6 variables. Text columns are character, numbers are integer or numeric (double).
+
+## Writing a CSV file
+
+Select the genes longer than 20 kb: a logical vector in the row position, and an empty column position (= all columns).
+
+```{r}
+long_genes <- genes[genes$length_bp > 20000, ]
+long_genes
+```
+
+Save them into a new file in `data`. `row.names = FALSE` stops R from adding a column with row numbers.
+
+```{r}
+#| eval: false
+#| script: "comment"
+write.csv(long_genes, "data/long_genes.csv", row.names = FALSE)
+```
+
+The file appears in `data/` and in the `Files` pane; Excel can open it.
+
+# A first look at the data
+
+## Quick-look plots in base R
+
+Base R can draw simple plots for a quick check of your data. Proper, publication-quality plots with `ggplot2` come in the next session.
+
+::::: columns
+::: {.column width="50%"}
+```{r}
+#| opts.label: "S"
+hist(genes$length_bp)
+```
+:::
+
+::: {.column width="50%"}
+```{r}
+#| opts.label: "S"
+plot(x = genes$length_bp,
+     y = genes$n_exons)
+```
+:::
+:::::
+
+## What we have learned
+
+-   **R** runs your code; **RStudio** is the IDE where you write it. Keep your code in a **script** and open your course folder as an RStudio **project**, so the **working directory** is set for you. In Windows paths, write `/` instead of `\`.
+-   Anything stored in R under a name is an **object**. The **assignment operator** `<-` stores a value in a **variable**.
+-   A **vector** is an ordered set of values of the same **data type**: numeric, character or logical. Select its elements by **index** (`x[3]`) or by **filtering** with a logical vector (`x[x > 0]`); `mean()` of a logical vector is a proportion, e.g. the GC content.
+-   A **factor** stores a categorical variable with a fixed set of **levels**. **NA** is a missing value: many functions return NA unless you set `na.rm = TRUE`.
+-   A **data frame** stores a data table: each column is a vector (one variable), each row is one observation. Select from it with `$` and `[row, column]`.
+-   Read a table with `read.csv()` and save one with `write.csv()`, using **relative paths** inside the project. A **package** adds new functions: install it once, load it with `library()` every time you start R.
+
+## Key R objects and functions: objects
+
+\scriptsize
+
+| Object | What it is | Example |
+|-----------|-------------------|--------------------|
+| vector | An ordered set of one or more values, all of the same type | `c("A", "T", "G", "C")` |
+| factor | A categorical variable; each value is one of a fixed set of levels | `factor(c("AG", "AA", "GG"))` |
+| matrix | A two-dimensional table of values of one type | `matrix(1:9, nrow = 3, ncol = 3)` |
+| list | Holds elements of different types and lengths | `list(12:16, c(TRUE, FALSE))` |
+| data frame | A data table: each column is a vector (one variable), all columns have the same length | `data.frame(gene_id = c("gene01", "gene02"), strand = c("+", "-"))` |
+| tibble | A modern version of a data frame (package `tibble`, part of the tidyverse) | `tibble(n_exons = 1:3)` |
+
+## Key R objects and functions: setup and vectors
+
+\scriptsize
+
+| Function | What it does | Example |
+|------------|------------|-------------------------|
+| `<-` | Stores a value in a variable | `x <- c(2, 4, 6)` |
+| `=` | Gives a value to a function argument | `seq(from = 1, to = 5)` |
+| `help()`, `?` | Opens the help page of a function | `?seq` |
+| `setwd()` | Sets the working directory | `setwd("C:/Users/student/Documents")` |
+| `install.packages()` | Installs a package (once) | `install.packages("tidyverse")` |
+| `library()` | Loads a package (every R session) | `library(tibble)` |
+| `c()` | Combines values into a vector | `c(-9.3, 0, 2.17)` |
+| `:` | Integer sequence with step 1 | `1:10` |
+| `seq()` | Sequence of numbers with any step | `seq(from = 1, to = 5, by = 0.5)` |
+| `rep()` | Repeats values | `rep(x = "A", times = 5)` |
+| `[ ]` | Selects elements by index or by a logical filter | `x[c(1, 3)]`, `x[x > 0]` |
+
+## Key R objects and functions: working with vectors
+
+\scriptsize
+
+| Function | What it does | Example |
+|-----------|-------------------|--------------------|
+| `==`, `!=`, `>`, `<`, `!`, `&`, &#124; | Logical operators: compare values, combine conditions (not, and, or) | `x == "G"`, `x > 0 & x < 8` |
+| `%in%` | Is each value one of several values? | `x %in% c("G", "C")` |
+| `filter()` | (`dplyr`, preview) Keeps the rows of a table that meet a condition | `filter(data.frame(base = x), base == "G")` |
+| `factor()` | Turns a vector into a factor | `factor(snp_genotypes)` |
+| `class()` | Shows what kind of object a variable holds | `class(dna_seq)` |
+| `length()` | Number of elements in a vector | `length(x)` |
+| `sum()` | Sum of the elements; `na.rm = TRUE` ignores NA | `sum(x, na.rm = TRUE)` |
+| `mean()` | Arithmetic mean; `na.rm = TRUE` ignores NA; of a logical vector: a proportion | `mean(x, na.rm = TRUE)`, `mean(f_gc)` |
+| `max()`, `min()` | Largest / smallest value; `na.rm = TRUE` ignores NA | `max(x, na.rm = TRUE)` |
+| `sqrt()` | Square root | `sqrt(27)` |
+| `function()` | Creates a user-defined function | `double_it <- function(x){ x * 2 }` |
+| `return()` | Says what a function returns | `return(res)` |
+
+## Key R objects and functions: tables and plots
+
+\scriptsize
+
+| Function | What it does | Example |
+|-----------|-------------------|--------------------|
+| `matrix()` | Creates a matrix; `nrow`, `ncol` set its size | `matrix(1:9, nrow = 3, ncol = 3)` |
+| `rownames()`, `colnames()` | Names of rows / columns; can also set them | `rownames(counts) <- c("ACTB", "GAPDH", "MYC")` |
+| `list()` | Creates a list | `list(12:16, snp_genotypes)` |
+| `data.frame()` | Creates a data frame from vectors | `data.frame(n_exons = exons, strand = strand)` |
+| `as.data.frame()` | Converts another object to a data frame | `as.data.frame(counts)` |
+| `nrow()`, `ncol()` | Number of rows / columns | `nrow(my_genes)` |
+| `$`, `[row, column]` | Selects a column; selects cells | `my_genes$n_exons`, `my_genes[2, 3]` |
+| `rbind()` | Adds rows to a data frame | `rbind(my_genes, my_genes_new)` |
+| `tibble()` | Creates a tibble | `tibble(n_exons = exons, strand = strand)` |
+
+## Key R objects and functions: data files and plots
+
+\scriptsize
+
+| Function | What it does | Example |
+|-----------|-------------------|--------------------|
+| `read.csv()` | Reads a CSV file into a data frame | `genes <- read.csv("data/genes.csv")` |
+| `write.csv()` | Saves a data frame as a CSV file; `row.names = FALSE` drops the row numbers | `write.csv(long_genes, "data/long_genes.csv", row.names = FALSE)` |
+| `str()` | Shows the structure of an object | `str(genes)` |
+| `head()`, `tail()`, `View()` | First rows, last rows, a spreadsheet view | `head(genes)` |
+| `hist()`, `plot()` | Quick histogram; quick scatterplot | `hist(genes$length_bp)` |

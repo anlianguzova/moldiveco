@@ -1,0 +1,14 @@
+.Rproj.user
+.Rhistory
+.RData
+.Rdata
+.DS_Store
+*_cache
+*_files
+.quarto
+*.tex
+*.log
+
+/.quarto/
+**/*.quarto_ipynb
+Rplots.pdf

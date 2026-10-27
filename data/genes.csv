@@ -1,0 +1,16 @@
+gene_id,chrom,strand,n_exons,length_bp,gc_content
+gene01,chr1,+,9,5230,0.48
+gene02,chr1,-,5,18740,0.44
+gene03,chr2,-,1,960,0.57
+gene04,chr3,+,14,9410,0.51
+gene05,chr2,+,8,61200,0.39
+gene06,chr3,-,4,2870,0.62
+gene07,chrX,+,3,13350,0.42
+gene08,chr2,-,21,27600,0.46
+gene09,chr3,-,11,7980,0.53
+gene10,chr1,+,5,1840,0.59
+gene11,chr2,+,6,22150,0.41
+gene12,chr1,-,2,6320,0.55
+gene13,chrX,-,12,38900,0.38
+gene14,chr3,+,17,10470,0.49
+gene15,chr1,+,7,3150,0.60

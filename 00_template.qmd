@@ -1,0 +1,133 @@
+---
+title: "Session title"
+subtitle: "Molecular Approaches to Biodiversity and Ecology"
+date: "2026-10-30"
+---
+
+```{r setup}
+#| include: false
+#| cache: false
+#| purl: false
+# TEMPLATE for all session decks.
+# To start a new deck: copy this file to NN_topic.qmd, change the YAML above,
+# replace the slides below. Shared format lives in _quarto.yml and
+# styles/beamer_header.tex; shared R setup lives in R/setup.R.
+# Render: quarto render NN_topic.qmd   (or the Render button in RStudio)
+# Code-only handout: knitr::purl("NN_topic.qmd")  (chunks with purl: false are skipped)
+# Images go to images/, data files to data/.
+source("R/setup.R")
+# Packages specific to this session:
+library(dplyr)
+```
+
+## Today you will be able to
+
+-   Do the first thing
+-   Do the second thing
+-   Interpret the third thing
+
+# Section title
+
+## Plain text slide with a glossary term
+
+A **glossary term** is set in bold on the slide where it first appears. The same term, with a short plain-English definition, is in the pre-lecture glossary in Moodle.
+
+-   Bullet point
+    -   Sub-point
+-   Another bullet point with `inline_code()`
+
+Inline math: $y_i = b_0 + b_1 x_i + e_i$
+
+## Code and output
+
+```{r}
+dat <- read.csv("data/template_example.csv")
+head(dat, 4)
+```
+
+```{r}
+mean(dat$expression)
+```
+
+## Figure with caption (from a chunk)
+
+```{r}
+#| echo: false
+#| opts.label: "M"
+#| fig-cap: "Expression level by group (simulated data)."
+ggplot(dat, aes(x = group, y = expression)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_jitter(width = 0.15, alpha = 0.6) +
+  labs(x = "Group", y = "Expression")
+```
+
+## Figure with caption (from a file)
+
+![Caption for an image stored in `images/`. Image source: author / licence.](images/template_example_figure.png){width="70%" fig-align="center"}
+
+## Two columns: text and figure
+
+::::: columns
+::: {.column width="45%"}
+-   Text in the left column
+-   The column widths add up to 100%
+-   `.t` aligns columns at the top: `{.column .t width="45%"}`
+:::
+
+::: {.column width="55%"}
+```{r}
+#| echo: false
+#| opts.label: "S"
+ggplot(dat, aes(x = gc_content, y = expression)) +
+  geom_point(alpha = 0.6) +
+  labs(x = "GC content", y = "Expression")
+```
+:::
+:::::
+
+## Two columns: code and figure
+
+::::: columns
+::: {.column width="50%"}
+```{r gg-scatter}
+#| eval: false
+ggplot(dat, aes(x = gc_content,
+                y = expression,
+                colour = group)) +
+  geom_point() +
+  geom_smooth(method = "lm",
+              se = FALSE)
+```
+:::
+
+::: {.column width="50%"}
+```{r}
+#| ref.label: "gg-scatter"
+#| echo: false
+#| purl: false
+#| opts.label: "S"
+```
+:::
+:::::
+
+## Screenshot placeholder
+
+```{r}
+#| echo: false
+#| purl: false
+#| out-width: "85%"
+#| fig-cap: "The screenshot must show: [describe exactly what to capture and which parts to annotate]."
+screenshot_placeholder("images/template_screenshot.png",
+                       "Describe what the screenshot must show")
+```
+
+## Take-home messages
+
+-   First message
+-   Second message
+    -   Detail
+
+## Further reading
+
+-   Author, A., Year. Title. Publisher.
+-   Website title. URL (accessed DD.MM.YYYY).
