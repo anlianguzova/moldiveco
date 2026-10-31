@@ -17,6 +17,9 @@ format:
     include-in-header: styles/beamer_header.tex
 
 mainfont: "Corbel"
+# Lining figures: Corbel's default old-style 0 looks like the letter o
+mainfontoptions:
+  - Numbers=Lining
 # Code font: DejaVu Sans Mono ships with TinyTeX, loaded by file name
 monofont: "DejaVuSansMono"
 monofontoptions:

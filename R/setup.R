@@ -15,7 +15,52 @@ knitr::opts_template$set(
 
 library(ggplot2)
 theme_set(theme_bw(base_size = 14) + theme(legend.key = element_blank()))
-update_geom_defaults("point", list(shape = 19, size = 3))
+update_geom_defaults("point", list(shape = 19, size = 2))  # size 3 made points overlap
+
+# Glossary of a session as a data frame: term, definition, chinese
+read_glossary <- function(file) {
+  lines <- readLines(file, encoding = "UTF-8")
+  rows <- grep("^\\|", lines, value = TRUE)[-(1:2)]  # drop header and |---| line
+  cells <- lapply(rows, function(r) {
+    x <- strsplit(sub("^\\|\\s*", "", sub("\\s*\\|\\s*$", "", r)), "\\s*(?<!\\\\)\\|\\s*", perl = TRUE)[[1]]
+    setNames(x[1:3], c("term", "definition", "chinese"))
+  })
+  as.data.frame(do.call(rbind, cells))
+}
+
+# Chinese text as raw LaTeX in the CJK font. XeTeX code points (^^^^4e2d), so the
+# slide is right whatever the R locale
+cjk_latex <- function(x) {
+  codes <- paste0("^^^^", sprintf("%04x", utf8ToInt(enc2utf8(x))), collapse = "")
+  paste0("`{\\cjkfont ", codes, "}`{=latex}")
+}
+
+# Chinese term of a glossary entry, for inline use on a slide:
+#   **median** (`r zh("glossary/02_intro_ggplot_glossary.md", "Median")`)
+zh <- function(file, term) {
+  gl <- read_glossary(file)
+  x <- gl$chinese[gl$term == term]
+  if (length(x) != 1 || x %in% c("", "\u2014")) stop("No Chinese term for ", term, " in ", file)
+  cjk_latex(x)
+}
+
+# "Key terms" slide, generated from the session glossary so the two never drift apart.
+# Use in a chunk with `#| results: asis`:
+#   key_terms("glossary/02_intro_ggplot_glossary.md", c("Median", "Boxplot"))
+# The Chinese term, if the glossary has one (not "—"), is shown next to the English term.
+key_terms <- function(file, terms) {
+  gl <- read_glossary(file)
+  missing <- setdiff(terms, gl$term)
+  if (length(missing) > 0) stop("Not in ", file, ": ", paste(missing, collapse = ", "))
+  gl <- gl[match(terms, gl$term), ]
+  has_zh <- !is.na(gl$chinese) & !gl$chinese %in% c("", "\u2014")  # \u2014: the dash "—"
+  term <- ifelse(has_zh,
+                 paste0("**", gl$term, "** ", vapply(gl$chinese, cjk_latex, "")),
+                 paste0("**", gl$term, "**"))
+  out <- c("| Term | Meaning |", "|:---------|:--------------------------------|",
+           paste0("| ", term, " | ", gl$definition, " |"))
+  cat(out, sep = "\n")
+}
 
 # Placeholder for a screenshot that will be pasted in later.
 # Creates a grey PNG at `path` only if no file exists there yet, so dropping the

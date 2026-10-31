@@ -8,7 +8,6 @@ date: "2026-10-30"
 #| include: false
 #| cache: false
 #| purl: false
-# Adapted from mathmethr/01_intro_to_r.Rmd (ggplot2 part moved to the Nov 2 session).
 source("R/setup.R")
 ```
 
@@ -30,7 +29,7 @@ source("R/setup.R")
 
 -   Each session: lecture + hands-on practice in R.
 -   After each session: a Moodle quiz, required, to be completed before the next session, + optional tasks for bonus points.
--   AI tools: use them to understand errors and concepts, not to solve tasks for you (details in Moodle).
+-   AI tools: use them to understand errors and concepts, not to solve tasks for you.
 
 ## Today you will be able to
 
@@ -1110,7 +1109,7 @@ rownames(counts)
 colnames(counts)
 ```
 
-The row names are real human gene symbols. ACTB (beta-actin) and GAPDH are **housekeeping genes**: they are needed in almost every cell and have high, stable expression. MYC is a regulatory gene, usually expressed at lower levels. The counts themselves are invented.
+The row names are real human gene symbols. *ACTB* (beta-actin) and *GAPDH* are **housekeeping genes**: they are needed in almost every cell and have high, stable expression. *MYC* is a regulatory gene, usually expressed at lower levels. The counts themselves are invented.
 
 ## Lists
 
@@ -1292,7 +1291,7 @@ The tidyverse packages (e.g. `dplyr`, `ggplot2`) are built to work with tibbles.
 
 ## Reading a CSV file
 
-A **CSV file** is a plain-text table: one row per line, values separated by commas. Save `genes.csv` (made-up practice data, from Moodle) into the `data` folder of your course project, then read it:
+A **CSV file** is a plain-text table: one row per line, values separated by commas. Save `genes.csv` (made-up practice data) into the `data` folder of your course project, then read it:
 
 ```{r}
 genes <- read.csv("data/genes.csv")

@@ -1,0 +1,1297 @@
+---
+title: "Introduction to ggplot2. Descriptive statistics I"
+subtitle: "Molecular Approaches to Biodiversity and Ecology"
+date: "2026-11-02"
+---
+
+```{r setup}
+#| include: false
+#| cache: false
+#| purl: false
+source("R/setup.R")
+gl02 <- "glossary/02_intro_ggplot_glossary.md"  # for the Chinese terms on the slides
+```
+
+## Today you will be able to
+
+-   Recognize tidy data and turn a wide table into a long one
+-   Read an Excel sheet into R and check it for missing values
+-   Build a plot with `ggplot2` layer by layer: data, aesthetics, geoms
+-   Show groups with color, shape and facets; use a logarithmic axis
+-   Draw histograms and save a plot to a file
+-   Describe a sample with the median, quartiles and the five-number summary; draw and read boxplots
+
+# Tidy data
+
+## Tidy data: find the problems
+
+Up to 80% of the time of a data analysis goes into getting the data in order. R and `ggplot2` work best with **tidy data**. 
+
+```{r}
+#| echo: false
+#| purl: false
+#| out-width: "95%"
+#| out-height: "86%"
+#| fig-cap: "A messy spreadsheet (messy_sheet_example.xlsx): how many problems can you find?"
+screenshot_placeholder("images/excel_messy_sheet.png",
+                       paste("data/messy_sheet_example.xlsx opened in Excel, whole table visible:",
+                             "merged cells, two header rows, groups by cell color, units, missing codes, total row"))
+```
+
+## Spreadsheets: what not to do (structure)
+
+\scriptsize
+
+| Don't | Do instead |
+|-----------------------------|-----------------------------|
+| Merge cells (e.g. one sample ID across two rows) | One value per cell: repeat the ID in every row |
+| Put a title or two header rows above the table | One header row; put titles and notes in a separate sheet |
+| Put two values in one cell (`12.5 / 13.1`) | One value per cell: a second measurement is a new row |
+| Code groups with cell colour | Put the group in its own column (e.g. `pond`); R cannot see colours |
+| Add totals or means inside the data | Keep only raw data; calculate summaries in R |
+
+\normalsize
+
+Each row is one observation, each column is one variable.
+
+## Spreadsheets: what not to do (values)
+
+\scriptsize
+
+| Don't | Do instead |
+|-----------------------------|-----------------------------|
+| Write units in the cells (`16.5 kb`, `38 %`) | Numbers only; the unit goes in the column name (`length_kb`, `gc_percent`) |
+| Mix formats in one column (`38%`, `0.37`, `37.9`) | One format per column |
+| Use several codes for missing (`no data`, `n/a`, `-`, `0`) | One code: `NA` or an empty cell. Never `0`: 0 is a value |
+| Spell categories differently (`Pond A`, `pond a`, `B`) | One spelling for each category |
+| Mix date formats (`02.11.2026`, `Nov 3`, `4/11`) | One format: `2026-11-04` (year-month-day) |
+| Use a decimal comma (`10,9`) | A decimal point (`10.9`) |
+| Type gene names into Excel without checking | Excel turns some gene names into dates (`SEPT2` -> `2-Sep`): format the column as text |
+
+\normalsize
+
+# Wide and long format
+
+Remember the count matrix from last time? A **read count** is the number of sequencing reads that map to a gene: more reads means more expression.
+
+```{r}
+counts <- matrix(c(1520, 980, 12, 1385, 1043, 30, 1610, 875, 7),
+                 nrow = 3, ncol = 3)
+rownames(counts) <- c("ACTB", "GAPDH", "MYC")
+colnames(counts) <- c("sample_1", "sample_2", "sample_3")
+counts_wide <- data.frame(gene = rownames(counts), counts)
+counts_wide
+```
+
+The gene names are now both row names (left) and a column, `gene`. Functions like `pivot_longer()` and `ggplot()` use only columns.
+
+-   **Wide format**: one row per gene, one column of counts per sample. Count tables usually arrive like this.
+-   **Long format**: one row per measurement (gene + sample + count). `ggplot2` and most statistical functions need it.
+
+## From wide to long: pivot_longer()
+
+`pivot_longer()` from the `tidyr` package (part of the tidyverse) turns columns into rows. Its arguments:
+
+-   `cols`: which columns to turn into rows. `-gene` means "all columns except `gene`": the minus excludes a column.
+-   `names_to`: the name of the new column that gets the old column names (here, the sample names).
+-   `values_to`: the name of the new column that gets the values (here, the counts).
+
+Each gene appears once for each sample: 3 genes × 3 samples = 9 rows. `pivot_wider()` does the reverse.
+
+## pivot_longer(): the long table
+
+```{r}
+library(tidyr)
+counts_long <- pivot_longer(counts_wide, cols = -gene,
+                            names_to = "sample", values_to = "count")
+counts_long
+```
+
+## Your turn 1: wide to long
+
+Read counts (made-up) of three genes in two control samples and two heat-stressed samples. *ACTB* and *GAPDH*, the housekeeping genes, stay stable. *HSPA1A* codes for HSP70, a heat-shock protein: cells make much more of it when they are stressed by heat.
+
+```{r}
+heat_counts <- data.frame(gene = c("ACTB", "GAPDH", "HSPA1A"),
+                          ctrl_1 = c(1490, 1012, 38),
+                          ctrl_2 = c(1532, 968, 45),
+                          heat_1 = c(1475, 1001, 1842),
+                          heat_2 = c(1508, 990, 2115))
+```
+
+1.  Turn `heat_counts` into a long table `heat_long` with the columns `gene`, `sample` and `count`.
+2.  How many rows does `heat_long` have, and why?
+
+## Your turn 1: answers
+
+```{r}
+heat_long <- pivot_longer(heat_counts, cols = -gene,
+                          names_to = "sample", values_to = "count")
+heat_long
+nrow(heat_long)  # 3 genes x 4 samples = 12
+```
+
+```{r}
+#| student: true
+#| include: false
+#| eval: false
+heat_long <- pivot_longer(___, cols = -___,
+                          names_to = ___, values_to = ___)
+heat_long
+___(heat_long)
+```
+
+# Our data: organelle genomes
+
+## Organelle genomes from NCBI RefSeq
+
+```{r}
+#| include: false
+#| purl: false
+genomes_chk <- readxl::read_excel("data/organelle_genomes.xlsx", sheet = "genomes", skip = 1, na = "NA")
+map <- read.csv("data/mito_map_human.csv")
+```
+
+::::: columns
+::: {.column width="52%"}
+\footnotesize
+
+`organelle_genomes.xlsx`: `r nrow(genomes_chk)` complete genomes from NCBI RefSeq, 25 per group: mitochondria of 5 groups and plastids of land plants.
+
+\scriptsize
+
+| Column | What it is |
+|:-------------|:------------------------|
+| `accession` | RefSeq number(s) |
+| `organism` | species name |
+| `group` | group of organisms |
+| `organelle` | mitochondrion, plastid |
+| `length_kb` | genome length, kb |
+| `gc_percent` | GC content, % |
+| `protein_genes` | protein-coding genes |
+| `trna_genes` | tRNA genes |
+| `note` | unusual records |
+
+\footnotesize
+
+NCBI gives lengths in bp; 1 kb = 1,000 bp, 1 Mb = 1,000 kb.
+:::
+
+::: {.column width="48%"}
+```{r}
+#| echo: false
+#| purl: false
+#| fig-width: 3.2
+#| fig-height: 3.5
+#| fig-cap: "The human mitogenome (NC_012920.1): genes on the two DNA strands."
+map$ring <- ifelse(map$strand == "+", 2.2, 1.2)
+ggplot(map) +
+  geom_rect(aes(xmin = start, xmax = end, ymin = ring, ymax = ring + 0.8, fill = type),
+            color = "white", linewidth = 0.2) +
+  geom_text(data = map[map$type != "tRNA", ],
+            aes(x = (start + end) / 2, y = ring + 1.4, label = gene), size = 2.3) +
+  annotate("text", x = 0, y = -1.5, label = "16,569 bp", size = 3.3) +
+  coord_polar() +
+  scale_x_continuous(limits = c(0, 16569)) +
+  scale_y_continuous(limits = c(-1.5, 4.4)) +
+  scale_fill_manual(values = c("protein-coding" = "#4C9BE8", rRNA = "#E8A33D", tRNA = "grey40"),
+                    name = NULL) +
+  theme_void(base_size = 8) +
+  theme(legend.position = "bottom")
+```
+:::
+:::::
+
+\tiny O'Leary N.A. et al. (2016). Reference sequence (RefSeq) database at NCBI. *Nucleic Acids Research* 44: D733–D745.
+
+## Reading an Excel sheet
+
+Save `organelle_genomes.xlsx` into the `data` folder of your project. The package `readxl` (installed with the tidyverse) reads Excel files:
+
+```{r}
+library(readxl)
+genomes <- read_excel("data/organelle_genomes.xlsx",
+                      sheet = "genomes", # sheet name
+                      skip = 1,          # skip the "Source" row
+                      na = "NA")         # code for missing values
+```
+
+-   Without `skip = 1`, R would take the "Source: ..." row as column names.
+-   Without `na = "NA"`, the text `"NA"` would turn the number columns into text.
+
+## Checking the data
+
+```{r}
+str(genomes)
+```
+
+`read_excel()` returns a tibble. `group` and `organelle` are text (`chr`); turn them into factors:
+
+```{r}
+genomes$group <- factor(genomes$group)
+genomes$organelle <- factor(genomes$organelle)
+```
+
+## Unusual records: the note column
+
+```{r}
+#| include: false
+#| purl: false
+noted <- genomes[!is.na(genomes$note), ]
+summed <- noted[grepl("^summed", noted$note), ]
+```
+
+`r nrow(noted)` records have a `note`. Read it before you analyse the data:
+
+-   Split genomes: in `r paste0("*", summed$organism, "*", collapse = ", ")`, the mitogenome is split into several chromosomes. Each species is one row: the lengths are summed.
+-   Missing annotation: some records lack tRNA genes or annotate only part of the genome (next slides).
+-   Unusual counts: two records have more tRNA genes than their relatives; the note says why (later today).
+
+```{r}
+genomes[!is.na(genomes$note), c("organism", "note")]
+```
+
+## Missing values: counting them
+
+`is.na()` returns `TRUE` for each missing value; `sum()` of a logical vector counts the `TRUE` values:
+
+```{r}
+sum(is.na(genomes$trna_genes))
+```
+
+`summary()` describes each column; for numeric columns it also counts the `NA`'s:
+
+```{r}
+summary(genomes[, c("length_kb", "gc_percent", "protein_genes", "trna_genes")])
+```
+
+## Missing values: which rows?
+
+`complete.cases()` returns `TRUE` for each row without any `NA`:
+
+```{r}
+nrow(genomes[!complete.cases(genomes), ])
+```
+
+```{r}
+#| include: false
+#| purl: false
+n_no_note <- sum(is.na(genomes$note))
+```
+
+Too many: `note` is empty (`NA`) in `r n_no_note` rows, and an empty note is not missing data. Check only the measurement columns:
+
+```{r}
+num_cols <- c("length_kb", "gc_percent", "protein_genes", "trna_genes")
+genomes[!complete.cases(genomes[, num_cols]), c("organism", "protein_genes", "trna_genes")]
+```
+
+## Why each value is missing
+
+```{r}
+#| include: false
+#| purl: false
+na_rec <- genomes[!complete.cases(genomes[, num_cols]), ]
+na_lines <- paste0("-   *", na_rec$organism, "* (", na_rec$group, ", ", na_rec$organelle, "): ", na_rec$note, ".")
+```
+
+The `note` column gives the reason for each record:
+
+```{r}
+#| echo: false
+#| results: asis
+#| purl: false
+cat(na_lines, sep = "\n")
+```
+
+Two different reasons:
+
+-   The annotation is missing: the genes exist, but the record does not list them.
+-   Only part of the genome is annotated (the cucumber: 1 of its 3 chromosomes): a count would be too low.
+
+In both cases the true number is unknown, so it is `NA`.
+
+## NA is not 0
+
+```{r}
+#| include: false
+#| purl: false
+anemonia <- genomes[genomes$organism == "Anemonia sulcata", ]
+cnid_chk <- genomes[genomes$group == "cnidarians", ]
+```
+
+The record of the sea anemone *Anemonia sulcata* (`r anemonia$accession`) lists `r anemonia$protein_genes` protein-coding genes but no tRNA genes, while `r sum(cnid_chk$trna_genes %in% 1:2)` of the `r nrow(cnid_chk)` cnidarians in the table have 1 or 2. "Not annotated" does not mean "no genes". What if we wrote 0 instead of `NA`?
+
+```{r}
+cnid <- genomes[genomes$group == "cnidarians", ]
+mean(cnid$trna_genes, na.rm = TRUE)  # NA left out
+trna_zero <- cnid$trna_genes
+trna_zero[is.na(trna_zero)] <- 0     # wrong: NA written as 0
+mean(trna_zero)
+```
+
+Writing 0 for a missing value changes every statistic you calculate. `na.rm = TRUE` leaves the `NA` out instead.
+
+# Plots with ggplot2
+
+## Last time: quick-look plots in base R
+
+At the end of the last session we drew two quick plots of `genes.csv`:
+
+::::: columns
+::: {.column width="50%"}
+```{r}
+#| opts.label: "S"
+genes <- read.csv("data/genes.csv")
+hist(genes$length_bp)
+```
+:::
+
+::: {.column width="50%"}
+```{r}
+#| opts.label: "S"
+plot(x = genes$length_bp,
+     y = genes$n_exons)
+```
+:::
+:::::
+
+## The same plots with ggplot2
+
+`ggplot2` is a package from the tidyverse for publication-quality plots. Load it before the first plot:
+
+::::: columns
+::: {.column width="50%"}
+```{r}
+#| opts.label: "S"
+library(ggplot2)
+ggplot(data = genes,
+       aes(x = length_bp)) +
+  geom_histogram(bins = 5)
+```
+:::
+
+::: {.column width="50%"}
+```{r}
+#| opts.label: "S"
+ggplot(data = genes,
+       aes(x = length_bp,
+           y = n_exons)) +
+  geom_point()
+```
+:::
+:::::
+
+## How ggplot2 builds a plot
+
+A ggplot is built from layers joined with `+`:
+
+-   `ggplot(data = genes)`: the data, a data frame (one column per variable).
+-   `aes(x = length_bp, y = n_exons)`: the **aesthetics**: which variable goes on which visual property (x, y, color, shape, size).
+-   `geom_point()`: the **geom**, the kind of object that draws the data (points, bars, boxes, lines).
+-   More layers change the look: axis labels, colors, themes, panels.
+
+The idea comes from the "grammar of graphics" (Wilkinson 2005): every plot is data + aesthetics + geoms. `ggplot2` (gg = grammar of graphics) puts it into R.
+
+Wickham H. (2016). *ggplot2: Elegant Graphics for Data Analysis*. Springer. Free online: <https://ggplot2-book.org>.
+
+## A first scatterplot
+
+A **scatterplot** shows two numeric variables: genome length on x, GC content on y.
+
+```{r}
+#| opts.label: "wide"
+ggplot(data = genomes, aes(x = length_kb, y = gc_percent)) +
+  geom_point()
+```
+
+Almost all points are squeezed against the left side.
+
+## Logarithms
+
+```{r}
+#| include: false
+#| purl: false
+len_range <- range(genomes$length_kb)
+```
+
+The **logarithm** log10 answers "10 to what power gives this number?": $10^1 = 10$, $10^2 = 100$, $10^3 = 1000$, so log10(100) = 2 and log10(1000) = 3.
+
+```{r}
+10^2
+log10(c(10, 100, 1000))
+log10(c(16, 160, 1600))  # each 10 times longer: +1
+```
+
+A step of 1 in log10 means "10 times more". Our genome lengths go from `r len_range[1]` to `r len_range[2]` kb, so their log10 goes only from `r round(log10(len_range[1]), 2)` to `r round(log10(len_range[2]), 2)`.
+
+## Why a logarithmic scale?
+
+```{r}
+#| include: false
+#| purl: false
+animal_range <- range(genomes$length_kb[genomes$group %in% c("vertebrates", "insects", "cnidarians")])
+```
+
+The largest genome is about `r round(len_range[2] / len_range[1])` times the smallest. On a normal axis, all animal mitogenomes (`r animal_range[1]` to `r animal_range[2]` kb) are squeezed into one corner. On a **logarithmic scale**, each step multiplies the value by 10 (10, 100, 1000 kb): small and large genomes get the same amount of space.
+
+```{r}
+#| opts.label: "wide"
+ggplot(data = genomes, aes(x = length_kb, y = gc_percent)) +
+  geom_point() +
+  scale_x_log10()
+```
+
+## Transform the data or the axis?
+
+::::: columns
+::: {.column width="50%"}
+Transform the data: the axis shows log10 values.
+
+```{r}
+#| opts.label: "S"
+ggplot(genomes,
+       aes(x = log10(length_kb),
+           y = gc_percent)) +
+  geom_point()
+```
+:::
+
+::: {.column width="50%"}
+Transform the axis: the labels stay in kb.
+
+```{r}
+#| opts.label: "S"
+ggplot(genomes,
+       aes(x = length_kb,
+           y = gc_percent)) +
+  geom_point() +
+  scale_x_log10()
+```
+:::
+:::::
+
+The points are in the same places. For plots, `scale_x_log10()` is easier to read: 2.0 on the left plot means 100 kb.
+
+## Themes
+
+A theme changes the look of the plot, but not the data. Try `theme_bw()`, `theme_classic()`, `theme_minimal()`:
+
+```{r}
+#| fig-width: 9
+#| fig-height: 2.6
+ggplot(data = genomes, aes(x = length_kb, y = gc_percent)) +
+  geom_point() +
+  scale_x_log10() +
+  theme_classic()
+```
+
+`theme_set()` makes a theme the default for all plots in this R session (`base_size` sets the font size):
+
+```{r}
+theme_set(theme_bw(base_size = 14))
+```
+
+## Axis labels and title
+
+```{r}
+#| fig-width: 8
+#| fig-height: 3.4
+ggplot(data = genomes, aes(x = length_kb, y = gc_percent)) +
+  geom_point() +
+  scale_x_log10() +
+  labs(x = "Genome length, kb (log scale)", y = "GC content, %",
+       title = "Organelle genomes:\nlength and GC content") +
+  theme(plot.title = element_text(hjust = 0.5))  # center the title
+```
+
+`\n` starts a new line in a label.
+
+## Point size, color and shape
+
+Settings outside `aes()` apply to all points:
+
+::::: columns
+::: {.column width="50%"}
+```{r}
+#| opts.label: "S"
+ggplot(genomes, aes(x = length_kb,
+                    y = gc_percent)) +
+  geom_point(size = 1,
+             color = "blue") +
+  scale_x_log10()
+```
+:::
+
+::: {.column width="50%"}
+```{r}
+#| opts.label: "S"
+ggplot(genomes, aes(x = length_kb,
+                    y = gc_percent)) +
+  geom_point(shape = 22, size = 2,
+             color = "red",
+             fill = "yellow") +
+  scale_x_log10()
+```
+:::
+:::::
+
+`shape` is a number from 0 to 25 (`?points`); shapes 21–25 have both an outline (`color`) and a `fill`.
+
+## A plot as an object; saving a plot
+
+A plot can be stored in a variable and changed later:
+
+```{r}
+gc_plot <- ggplot(genomes, aes(x = length_kb, y = gc_percent)) +
+  geom_point() +
+  scale_x_log10()
+gc_plot <- gc_plot + labs(x = "Genome length, kb (log scale)", y = "GC content, %")
+```
+
+`ggsave()` saves a plot to a file. The file type comes from the extension: `.png` for slides and documents, `.pdf` for print (it stays sharp at any size).
+
+```{r}
+#| eval: false
+#| script: "comment"
+ggsave("gc_plot.png", plot = gc_plot, width = 15, height = 10, units = "cm", dpi = 300)
+ggsave("gc_plot.pdf", plot = gc_plot, width = 15, height = 10, units = "cm")
+```
+
+The files appear in your project folder and in the `Files` pane.
+
+## Your turn 2: a scatterplot
+
+1.  Draw a scatterplot of the number of protein-coding genes (y) against genome length (x), with genome length on a logarithmic scale.
+2.  Label the axes "Genome length, kb (log scale)" and "Protein-coding genes".
+3.  Use `theme_classic()` and points of size 2.
+4.  Save the plot as `protein_genes.png`, 15 × 10 cm.
+
+R warns that it removed `r sum(is.na(genomes$protein_genes))` row: the cucumber, with `protein_genes` = `NA`.
+
+## Your turn 2: answers
+
+```{r}
+#| opts.label: "wide"
+prot_plot <- ggplot(genomes, aes(x = length_kb, y = protein_genes)) +
+  geom_point(size = 2) +
+  scale_x_log10() +
+  labs(x = "Genome length, kb (log scale)", y = "Protein-coding genes") +
+  theme_classic()
+prot_plot
+```
+
+```{r}
+#| eval: false
+#| script: "comment"
+ggsave("protein_genes.png", plot = prot_plot, width = 15, height = 10, units = "cm")
+```
+
+```{r}
+#| student: true
+#| include: false
+#| eval: false
+prot_plot <- ggplot(genomes, aes(x = ___, y = ___)) +
+  geom_point(size = ___) +
+  ___() +
+  labs(x = "Genome length, kb (log scale)", y = "Protein-coding genes") +
+  ___()
+prot_plot
+# ggsave("protein_genes.png", plot = ___, width = ___, height = ___, units = "cm")
+```
+
+# Aesthetics
+
+## Mapping a variable to color
+
+Inside `aes()`, `color` shows a **variable**: each organelle gets its own color, and a legend appears.
+
+```{r}
+#| opts.label: "wide"
+ggplot(genomes, aes(x = length_kb, y = gc_percent, color = organelle)) +
+  geom_point() +
+  scale_x_log10()
+```
+
+Outside `aes()`, `color = "blue"` is a **setting**: the same color for all points.
+
+## Overlapping points
+
+Many points lie on top of each other (e.g. the plastids), so you cannot see how many there are. Three fixes: smaller points (`size`), see-through points (`alpha`, from 0 to 1), and points with a black outline and a colored `fill` (`shape = 21`):
+
+::::: columns
+::: {.column width="50%"}
+```{r}
+#| opts.label: "S"
+ggplot(genomes, aes(x = length_kb,
+                    y = gc_percent,
+                    color = organelle)) +
+  geom_point(size = 3) +
+  scale_x_log10()
+```
+:::
+
+::: {.column width="50%"}
+```{r}
+#| opts.label: "S"
+ggplot(genomes, aes(x = length_kb,
+                    y = gc_percent,
+                    fill = organelle)) +
+  geom_point(shape = 21,
+             color = "black",
+             size = 2, alpha = 0.6) +
+  scale_x_log10()
+```
+:::
+:::::
+
+From now on, scatterplots use this style. With `shape = 21`, the variable goes to `fill`, not `color`.
+
+## Choosing your own colors
+
+`scale_fill_manual()` gives one color per group (`scale_color_manual()` does the same for `color`). The colors go to the groups in alphabetical order: `mitochondrion`, then `plastid`.
+
+```{r}
+#| opts.label: "wide"
+org_plot <- ggplot(genomes, aes(x = length_kb, y = gc_percent,
+                                fill = organelle)) +
+  geom_point(shape = 21, color = "black", size = 2, alpha = 0.6) +
+  scale_x_log10() +
+  scale_fill_manual(values = c("darkorange", "forestgreen"))
+org_plot
+```
+
+R knows `r length(colors())` color names (`colors()`), or use codes like `"#1B9E77"`.
+
+## Legend position
+
+`theme(legend.position = ...)`: `"right"` (default), `"bottom"`, `"top"`, `"left"`, `"none"` (no legend), or `"inside"` the plot area:
+
+::::: columns
+::: {.column width="50%"}
+```{r}
+#| opts.label: "S"
+org_plot +
+  theme(legend.position = "bottom")
+```
+:::
+
+::: {.column width="50%"}
+```{r}
+#| opts.label: "S"
+org_plot +
+  theme(legend.position = "inside",
+        legend.position.inside = c(0.85, 0.2))
+```
+:::
+:::::
+
+`legend.position.inside = c(0.85, 0.2)`: the position as a fraction of the plot width and height, from the bottom left corner.
+
+## Two variables: fill and shape
+
+<!-- OPTIONAL -->
+
+`shape` can show a second variable. `scale_shape_manual()` picks shapes that have a fill (21: circle, 24: triangle):
+
+```{r}
+#| fig-width: 9
+#| fig-height: 3
+ggplot(genomes, aes(x = length_kb, y = gc_percent,
+                    fill = group, shape = organelle)) +
+  geom_point(color = "black", size = 2, alpha = 0.7) +
+  scale_shape_manual(values = c(21, 24)) +
+  scale_x_log10()
+```
+
+Two legends, 6 combinations: possible, but hard to read. Facets are often better.
+
+## Comparing organisms: mitochondria only
+
+To compare organisms, we compare the same kind of genome: mitochondria. Plastids exist only in plants, so a "land plants" group with both organelles would mix two kinds of genomes.
+
+Keep only the rows where `organelle` is `"mitochondrion"`:
+
+```{r}
+mito <- genomes[genomes$organelle == "mitochondrion", ]
+nrow(mito)
+```
+
+## Facets
+
+A **facet** is a small panel with one group of the data. `facet_wrap(~ group)` draws one panel per group, with the same axes:
+
+```{r}
+#| fig-width: 8
+#| fig-height: 3.7
+ggplot(mito, aes(x = length_kb, y = gc_percent)) +
+  geom_point(shape = 21, color = "black", fill = "grey60",
+             size = 2, alpha = 0.6) +
+  scale_x_log10() +
+  facet_wrap(~ group)
+```
+
+## Facets in a grid
+
+<!-- OPTIONAL -->
+
+`facet_grid(rows ~ columns)`: one panel for each combination of two variables (here all genomes, both organelles).
+
+```{r}
+#| opts.label: "wide"
+ggplot(genomes, aes(x = length_kb, y = gc_percent)) +
+  geom_point(shape = 21, color = "black", fill = "grey60",
+             size = 2, alpha = 0.6) +
+  scale_x_log10() +
+  facet_grid(organelle ~ group)
+```
+
+Most panels in the plastid row are empty: only land plants have plastids.
+
+# Distributions
+
+## Histogram
+
+A **histogram** shows how often values fall into intervals (bins). `binwidth` sets the width of a bin:
+
+::::: columns
+::: {.column width="50%"}
+```{r}
+#| opts.label: "S"
+ggplot(genomes,
+       aes(x = gc_percent)) +
+  geom_histogram(binwidth = 5)
+```
+:::
+
+::: {.column width="50%"}
+```{r}
+#| opts.label: "S"
+ggplot(genomes,
+       aes(x = gc_percent)) +
+  geom_histogram(binwidth = 1)
+```
+:::
+:::::
+
+Wide bins hide details; very narrow bins show mostly noise. Try a few widths.
+
+## Geoms and stats
+
+A histogram first counts the values in each bin (a statistical step, a "stat") and then draws bars (a geom). The same counts can be drawn by another geom: `stat_bin()` with `geom = "line"`.
+
+```{r}
+#| opts.label: "wide"
+ggplot(genomes, aes(x = gc_percent)) +
+  stat_bin(geom = "line", binwidth = 2, linewidth = 1, color = "red")
+```
+
+`linewidth` sets the thickness of lines; `size` sets the size of points.
+
+## Comparing groups
+
+::::: columns
+::: {.column width="40%"}
+Facets one above the other (`ncol = 1`) share the x axis, so the groups are easy to compare (mitochondria only):
+
+```{r}
+#| fig-show: "hide"
+ggplot(mito, aes(
+  x = gc_percent)) +
+  geom_histogram(
+    binwidth = 1) +
+  facet_wrap(~ group,
+             ncol = 1)
+```
+:::
+
+::: {.column width="60%"}
+```{r}
+#| echo: false
+#| purl: false
+#| fig-width: 4.5
+#| fig-height: 5.2
+ggplot(mito, aes(x = gc_percent)) +
+  geom_histogram(binwidth = 1) +
+  facet_wrap(~ group, ncol = 1) +
+  theme_bw(base_size = 10)  # smaller font: tall plot in a column
+```
+:::
+:::::
+
+## Density curves
+
+<!-- OPTIONAL -->
+
+A density curve is a smooth version of a histogram. `fill` colors the area; `alpha` makes it see-through:
+
+```{r}
+#| opts.label: "wide"
+ggplot(genomes, aes(x = gc_percent, fill = organelle)) +
+  geom_density(alpha = 0.5)
+```
+
+## Group means
+
+```{r}
+#| include: false
+#| purl: false
+n_big <- sum(mito$length_kb > 1000)
+```
+
+`stat_summary()` calculates a statistic for each group and draws it with a geom; `fun = "mean"` gives the mean:
+
+```{r}
+#| opts.label: "wide"
+ggplot(mito, aes(x = group, y = gc_percent, fill = group)) +
+  stat_summary(fun = "mean", geom = "bar")
+```
+
+The bars show mean GC%, not mean genome length: lengths are very skewed (`r n_big` plant mitogenome`r if (n_big > 1) "s are" else " is"` over 1000 kb), so a mean length would mislead. The median, later today, handles this.
+
+## A trend line
+
+<!-- OPTIONAL -->
+
+`geom_smooth(method = "lm")` adds a straight line fitted to the points: a linear model, the topic of Nov 9.
+
+```{r}
+#| opts.label: "wide"
+ggplot(genomes, aes(x = length_kb, y = protein_genes)) +
+  geom_point(shape = 21, color = "black", fill = "grey60",
+             size = 2, alpha = 0.6) +
+  scale_x_log10() +
+  geom_smooth(method = "lm")
+```
+
+## Your turn 3: groups and distributions
+
+1.  Draw GC content (y) against genome length (x, log scale) for all genomes, in the readable style (`shape = 21`, `alpha`), with the fill showing `organelle` and the legend at the bottom. Fill the points with your two favorite colors.
+
+    Hint: `scale_fill_manual()` works like `scale_color_manual()`, but for `fill`. Colors can be names (`"darkorange"`, `"steelblue"`) or hex codes (`"#1B9E77"`). The first color goes to `mitochondrion`, the second to `plastid` (alphabetical order).
+2.  Draw a histogram of `protein_genes` of the mitochondria (`mito`), with `binwidth = 5` and one facet per `group` in one column.
+
+## Your turn 3: answers
+
+```{r}
+#| opts.label: "wide"
+ggplot(genomes, aes(x = length_kb, y = gc_percent, fill = organelle)) +
+  geom_point(shape = 21, color = "black", size = 2, alpha = 0.6) +
+  # any two colors work:
+  scale_fill_manual(values = c("darkorange", "steelblue")) +
+  scale_x_log10() +
+  theme(legend.position = "bottom")
+```
+
+## Your turn 3: answers
+
+::::: columns
+::: {.column width="40%"}
+```{r}
+#| fig-show: "hide"
+ggplot(mito, aes(
+  x = protein_genes)) +
+  geom_histogram(
+    binwidth = 5) +
+  facet_wrap(~ group,
+             ncol = 1)
+```
+:::
+
+::: {.column width="60%"}
+```{r}
+#| echo: false
+#| purl: false
+#| fig-width: 4.5
+#| fig-height: 5.2
+ggplot(mito, aes(x = protein_genes)) +
+  geom_histogram(binwidth = 5) +
+  facet_wrap(~ group, ncol = 1) +
+  theme_bw(base_size = 10)  # smaller font: tall plot in a column
+```
+:::
+:::::
+
+```{r}
+#| student: true
+#| include: false
+#| eval: false
+ggplot(genomes, aes(x = length_kb, y = gc_percent, fill = ___)) +
+  geom_point(shape = ___, color = "black", size = 2, alpha = ___) +
+  scale_fill_manual(values = c(___, ___)) +
+  scale_x_log10() +
+  theme(legend.position = ___)
+
+ggplot(___, aes(x = protein_genes)) +
+  geom_histogram(binwidth = ___) +
+  facet_wrap(~ ___, ncol = ___)
+```
+
+# Describing a sample
+
+## Population and sample
+
+-   **Population**: all the objects you want to draw conclusions about, e.g. all insect mitochondrial genomes.
+-   **Sample**: the objects you actually measured, e.g. our 25 insect mitogenomes (RefSeq has about 5,000).
+-   **Descriptive statistics** summarise the sample: where its values are (center) and how far they spread.
+-   Later in the course we will use samples to draw conclusions about populations.
+
+## Types of data
+
+\scriptsize
+
+| Type | Values | In our table |
+|-----------|-------------------|--------------------|
+| Categorical | categories (groups), no numbers | `group`, `organelle` |
+| Discrete numeric | counts: whole numbers | `protein_genes`, `trna_genes` |
+| Continuous numeric | measurements: any value in a range | `length_kb`, `gc_percent` |
+
+\normalsize
+
+Describing numeric data needs two kinds of numbers:
+
+-   Center: the **median** (`r zh(gl02, "Median")`) today, the mean on Nov 6
+-   Spread: the quartiles today, the standard deviation on Nov 6
+
+## Median
+
+```{r}
+#| include: false
+#| purl: false
+ins_l <- mito$length_kb[mito$group == "insects"]
+s8 <- sort(head(ins_l, 8))
+```
+
+The **median** is the middle value of the sorted data. The lengths of the first 8 insect mitogenomes:
+
+```{r}
+insects <- mito[mito$group == "insects", ]
+sizes <- head(insects$length_kb, 8)
+sizes
+sort(sizes)
+```
+
+With an odd number of values, the median is the middle one. With an even number (here 8), it is the mean of the two middle values: the 4th (`r s8[4]`) and the 5th (`r s8[5]`).
+
+```{r}
+median(sizes)
+```
+
+## The median is robust to outliers
+
+Suppose the cucumber mitogenome (1684.6 kb) ended up in the insect table by mistake:
+
+```{r}
+sizes2 <- c(sizes, 1684.6)
+median(sizes)
+median(sizes2)
+mean(sizes)
+mean(sizes2)
+```
+
+One extreme value moves the mean from `r round(mean(sizes), 1)` to `r round(mean(sizes2), 1)` kb, but the median only from `r median(sizes)` to `r median(sizes2)` kb. An extreme value like this is an **outlier** (`r zh(gl02, "Outlier")`).
+
+## Quantiles
+
+A **quantile** (`r zh(gl02, "Quantile")`) splits the sorted data into parts with the same number of values in each:
+
+-   the median splits the data into 2 parts;
+-   the **quartiles** (`r zh(gl02, "Quartile")`) split it into 4 parts: 25% of the values are below Q1, 50% below Q2 (= the median), 75% below Q3;
+-   the percentiles split it into 100 parts: e.g. 10% of the values are below the 10th percentile.
+
+`quantile()` calculates them; `probs` gives the proportions:
+
+```{r}
+quantile(insects$length_kb, probs = c(0.25, 0.5, 0.75))
+quantile(insects$length_kb, probs = c(0.1, 0.9))
+```
+
+## Five-number summary
+
+`quantile()` without `probs` returns the **five-number summary**: minimum, Q1, median, Q3, maximum.
+
+```{r}
+quantile(insects$length_kb)
+```
+
+```{r}
+#| include: false
+#| purl: false
+q <- quantile(insects$length_kb)
+```
+
+Half of the insect mitogenomes are between `r q[2]` and `r q[4]` kb long. This range, $Q_3 - Q_1$ = `r round(q[4] - q[2], 2)` kb, is the **interquartile range** (`r zh(gl02, "Interquartile range (IQR)")`), IQR for short: the spread of the middle 50% of the values.
+
+## Boxplot: the five-number summary as a picture
+
+```{r}
+#| include: false
+#| purl: false
+iqr <- q[4] - q[2]
+upper_w <- max(insects$length_kb[insects$length_kb <= q[4] + 1.5 * iqr])
+lower_w <- min(insects$length_kb[insects$length_kb >= q[2] - 1.5 * iqr])
+n_out <- sum(insects$length_kb > q[4] + 1.5 * iqr | insects$length_kb < q[2] - 1.5 * iqr)
+```
+
+::::: columns
+::: {.column width="45%"}
+```{r}
+#| echo: false
+#| purl: false
+#| fig-width: 4
+#| fig-height: 4.5
+ggplot(insects, aes(x = 1, y = length_kb)) +
+  geom_boxplot(width = 0.4) +
+  annotate("text", x = 1.27, y = c(q[2], q[4], upper_w),
+           label = c("Q1", "Q3", "whisker"),
+           hjust = 0, size = 4.5, color = "grey30") +
+  annotate("text", x = 0.73, y = c(q[3], lower_w), label = c("median", "whisker"),
+           hjust = 1, size = 4.5, color = "grey30") +
+  annotate("text", x = 1.08, y = max(insects$length_kb), label = "outlier",
+           hjust = 0, size = 4.5, color = "grey30") +
+  coord_cartesian(xlim = c(0.25, 1.75)) +
+  labs(x = NULL, y = "Genome length, kb") +
+  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
+```
+:::
+
+::: {.column width="55%"}
+A **boxplot** (`r zh(gl02, "Boxplot")`) of the insect mitogenome lengths:
+
+-   the line in the box: the median;
+-   the box: from Q1 to Q3, so its height is the IQR;
+-   the whiskers: to the most extreme values that are within 1.5 × IQR of the box;
+-   points beyond the whiskers: possible outliers, drawn one by one (here `r n_out`).
+
+The whiskers reach the minimum and the maximum only when there are no outliers.
+:::
+:::::
+
+## A boxplot in ggplot2
+
+`geom_boxplot()` needs a numeric variable on y; on x, a group or a text label:
+
+```{r}
+#| fig-width: 4
+#| fig-height: 3.5
+#| out-width: "45%"
+ggplot(insects, aes(x = "insects", y = length_kb)) +
+  geom_boxplot() +
+  labs(x = NULL, y = "Genome length, kb")
+```
+
+## Summaries by group with the pipe
+
+`dplyr` (part of the tidyverse) calculates summaries for each group:
+
+```{r}
+library(dplyr)
+```
+
+-   The **pipe** `%>%` passes the result on its left into the next function: read it as "and then". `x %>% f()` is the same as `f(x)`.
+-   `group_by()`: split the table into groups; `summarise()`: one row of summaries per group; `n()`: the number of rows in a group.
+-   R also has its own pipe, `|>`, which works the same way; in this course we use `%>%`.
+-   `library(tidyverse)` loads `ggplot2`, `dplyr`, `tidyr` and the other tidyverse packages at once.
+
+## Summaries by group: a first example
+
+How many genomes of each kind do we have, and how long are they?
+
+```{r}
+#| message: true
+genomes %>%
+  group_by(group, organelle) %>%
+  summarise(n = n(), median_length = round(median(length_kb)))
+```
+
+This is a message, not an error: R tells you the result is still grouped.
+
+## Boxplots by group
+
+```{r}
+#| opts.label: "wide"
+ggplot(mito, aes(x = group, y = gc_percent)) +
+  geom_boxplot() +
+  labs(x = NULL, y = "GC content, %")
+```
+
+```{r}
+#| include: false
+#| purl: false
+med_gc <- tapply(mito$gc_percent, as.character(mito$group), median)
+```
+
+Insect mitogenomes are AT-rich (median GC `r med_gc[["insects"]]`%), vertebrate mitogenomes are not (`r med_gc[["vertebrates"]]`%), although both are about 16 kb long.
+
+## Your turn 4: boxplots
+
+1.  Draw boxplots of the number of tRNA genes (`trna_genes`) for each `group` of mitochondria (`mito`).
+2.  Which group has a point far above its box?
+3.  Calculate the five-number summary of `trna_genes` for each group with `%>%`, `group_by()` and `summarise()`: minimum, Q1, median, Q3, maximum. Use `na.rm = TRUE`.
+4.  Which group has the largest interquartile range?
+
+## Your turn 4: answers
+
+```{r}
+#| opts.label: "wide"
+ggplot(mito, aes(x = group, y = trna_genes)) +
+  geom_boxplot()
+```
+
+```{r}
+#| include: false
+#| purl: false
+trna_sum <- mito %>%
+  group_by(group) %>%
+  summarise(Q1 = quantile(trna_genes, 0.25, na.rm = TRUE),
+            Q3 = quantile(trna_genes, 0.75, na.rm = TRUE))
+top_iqr <- trna_sum[which.max(trna_sum$Q3 - trna_sum$Q1), ]
+```
+
+Cnidarians: one record with 8 tRNA genes (see "An outlier: biology or error?"). The largest IQR: `r top_iqr$group`, `r top_iqr$Q3 - top_iqr$Q1` genes. R warns about the removed `NA` rows.
+
+## Your turn 4: answers
+
+```{r}
+mito %>%
+  group_by(group) %>%
+  summarise(min = min(trna_genes, na.rm = TRUE),
+            Q1 = quantile(trna_genes, 0.25, na.rm = TRUE),
+            median = median(trna_genes, na.rm = TRUE),
+            Q3 = quantile(trna_genes, 0.75, na.rm = TRUE),
+            max = max(trna_genes, na.rm = TRUE))
+```
+
+With one grouping variable (`group`), `summarise()` gives no message.
+
+```{r}
+#| student: true
+#| include: false
+#| eval: false
+ggplot(___, aes(x = ___, y = ___)) +
+  ___()
+
+mito %>%
+  group_by(___) %>%
+  summarise(min = min(trna_genes, na.rm = TRUE),
+            Q1 = quantile(trna_genes, ___, na.rm = TRUE),
+            median = ___(trna_genes, na.rm = TRUE),
+            Q3 = quantile(trna_genes, ___, na.rm = TRUE),
+            max = ___(trna_genes, na.rm = TRUE))
+```
+
+## An outlier: biology or error?
+
+<!-- OPTIONAL -->
+
+```{r}
+cnid[cnid$trna_genes > 2 & !is.na(cnid$trna_genes), c("organism", "accession", "trna_genes")]
+```
+
+```{r}
+#| include: false
+#| purl: false
+stony <- c("Acropora horrida", "Agaricia humilis", "Fungiacyathus stephanus",
+           "Gardineria hawaiiensis", "Pocillopora damicornis", "Siderastrea radians")
+stony_trna <- unique(cnid$trna_genes[cnid$organism %in% stony])
+stopifnot(all(stony %in% cnid$organism), length(stony_trna) == 1)
+```
+
+*Porites lutea* is a stony (scleractinian) coral. The other `r length(stony)` stony corals in the table have `r stony_trna` tRNA genes, as is usual for this group. A real gain of tRNA genes, or an error in the annotation?
+
+-   Do not delete a point only because it is far from the others: an outlier can be real biology.
+-   Check the source: open the record (`NC_029695.1` in NCBI Nucleotide) and see how the tRNA genes were found.
+-   Compare with related species, and keep a note of what you decided: here, `note` says "possible annotation error".
+
+## Median and quartiles describe any distribution
+
+<!-- OPTIONAL -->
+
+-   The median and the quartiles do not assume any particular shape of the distribution: they work for symmetric or skewed data, with outliers or without.
+-   They hardly react to outliers, so they are a safe first summary of any sample.
+
+# Summary
+
+## Key terms
+
+\scriptsize
+
+```{r}
+#| echo: false
+#| results: asis
+#| purl: false
+key_terms("glossary/02_intro_ggplot_glossary.md",
+          c("Tidy data", "Aesthetic", "Geom", "Facet", "Logarithmic scale",
+            "Median", "Five-number summary", "Boxplot"))
+```
+
+## What we have learned
+
+-   **Tidy data**: one variable per column, one observation per row, one value per cell. `pivot_longer()` turns a wide table into a long one.
+-   `read_excel()` reads a sheet; check it with `str()`, `summary()` and `complete.cases()`. A missing value is `NA`, not 0.
+-   A ggplot is built from layers: data + **aesthetics** (`aes()`) + **geoms**, joined with `+`. Show groups with color, fill, shape or facets; a logarithmic scale shows small and very large values on one axis.
+-   The **median** and the **quartiles** describe a sample and are robust to **outliers**; the **five-number summary** is shown by a **boxplot**.
+-   `%>%`, `group_by()` and `summarise()` calculate summaries for each group.
+
+## Key R functions: data
+
+\scriptsize
+
+| Function | What it does | Example |
+|---------------|-----------------|--------------------|
+| `pivot_longer()` | (`tidyr`) Wide table to long table; `cols`: columns to turn into rows (`-gene`: all except `gene`); `names_to`, `values_to`: names of the new columns | `pivot_longer(counts_wide, cols = -gene, names_to = "sample", values_to = "count")` |
+| `read_excel()` | (`readxl`) Reads an Excel sheet; `skip`: rows above the header; `na`: code for missing values | `read_excel("data/x.xlsx", skip = 1, na = "NA")` |
+| `is.na()` | `TRUE` for each missing value | `sum(is.na(genomes$trna_genes))` |
+| `summary()` | Summary of each column, with the number of `NA`'s | `summary(genomes)` |
+| `complete.cases()` | `TRUE` for each row without `NA` | `genomes[!complete.cases(genomes), ]` |
+| `log10()` | Logarithm to base 10 | `log10(100)` |
+
+## Key R functions: ggplot2
+
+\scriptsize
+
+| Function | What it does | Example |
+|---------------|-----------------|--------------------|
+| `ggplot()`, `aes()` | Start a plot: the data and the aesthetics | `ggplot(genomes, aes(x = length_kb, y = gc_percent))` |
+| `geom_point()` | Scatterplot; `shape = 21` + `fill`, `alpha` against overlap | `geom_point(shape = 21, fill = "grey", alpha = 0.6)` |
+| `scale_x_log10()` | Logarithmic x axis | `scale_x_log10()` |
+| `labs()` | Axis labels and title | `labs(x = "Length, kb", title = "...")` |
+| `theme_bw()`, `theme_set()` | A theme; make it the default | `theme_set(theme_bw(base_size = 14))` |
+| `theme()` | Changes parts of the look, e.g. the legend | `theme(legend.position = "bottom")` |
+| `scale_fill_manual()` | Your own colors for groups (`scale_color_manual()` for `color`) | `scale_fill_manual(values = c("red", "blue"))` |
+| `facet_wrap()`, `facet_grid()` | One panel per group | `facet_wrap(~ group, ncol = 1)` |
+| `ggsave()` | Saves a plot to a file | `ggsave("plot.png", plot = p, width = 15, height = 10, units = "cm")` |
+
+## Key R functions: distributions
+
+\scriptsize
+
+| Function | What it does | Example |
+|---------------|-----------------|--------------------|
+| `geom_histogram()` | Histogram; `binwidth` sets the bin width | `geom_histogram(binwidth = 1)` |
+| `stat_bin()` | Counts values in bins, drawn with any geom | `stat_bin(geom = "line", binwidth = 2)` |
+| `geom_density()` | Density curve | `geom_density(alpha = 0.5)` |
+| `stat_summary()` | A statistic for each group, drawn with a geom | `stat_summary(fun = "mean", geom = "bar")` |
+| `geom_smooth()` | A fitted line; `method = "lm"`: a straight line | `geom_smooth(method = "lm")` |
+| `scale_shape_manual()` | Your own shapes for groups | `scale_shape_manual(values = c(21, 24))` |
+
+## Key R functions: descriptive statistics
+
+\scriptsize
+
+| Function | What it does | Example |
+|-----------|-------------------|--------------------|
+| `sort()` | Sorts values from smallest to largest | `sort(sizes)` |
+| `median()` | Median; `na.rm = TRUE` ignores NA | `median(x, na.rm = TRUE)` |
+| `quantile()` | Quantiles; without `probs`: the five-number summary | `quantile(x, probs = c(0.25, 0.75))` |
+| `geom_boxplot()` | Boxplot | `ggplot(mito, aes(x = group, y = gc_percent)) + geom_boxplot()` |
+| `%>%` | Pipe: passes the result on to the next function | `genomes %>% group_by(group)` |
+| `group_by()` | (`dplyr`) Splits a table into groups | `group_by(group, organelle)` |
+| `summarise()` | (`dplyr`) One row of summaries per group | `summarise(median = median(gc_percent))` |
+| `n()` | (`dplyr`) Number of rows in a group, inside `summarise()` | `summarise(n = n())` |
+
+## Homework and next session
+
+-   Moodle quiz on today's session: complete it before Nov 6.
+-   Optional tasks for bonus points: submit as an `.R` file.
+-   Nov 6: descriptive statistics II (normal distribution, mean and standard deviation, z-scores, Q-Q plots) and hypothesis testing.

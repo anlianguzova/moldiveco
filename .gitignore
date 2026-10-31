@@ -8,6 +8,7 @@
 .quarto
 *.tex
 *.log
+attendance.xlsx
 
 /.quarto/
 **/*.quarto_ipynb
@@ -15,4 +16,8 @@ Rplots.pdf
 
 # Local only (repo is public): graded quiz answers and instructor notes
 homework/*.gift
+homework/*_solutions.R
 CLAUDE.md
+
+# Written by students in deck 01 (write.csv demo)
+data/long_genes.csv
