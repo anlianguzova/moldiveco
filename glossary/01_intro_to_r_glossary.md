@@ -1,6 +1,6 @@
 # Glossary for Oct 30: Introduction to R
 
-Publish in Moodle before the lecture. Add each entry to the course Glossary (Concept = term, Definition = text).
+Used only to build the deck's Key terms slide (and the Chinese terms on the slides); not published in Moodle.
 Terms are in the order they appear in the slides; each one is in **bold** on its first slide.
 Later sessions: reuse this wording when a term comes up again.
 Chinese terms: only for established statistical, mathematical or biological terms, provided by the instructor; all other terms: `—`.

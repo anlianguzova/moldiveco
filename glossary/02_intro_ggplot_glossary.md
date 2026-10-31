@@ -1,6 +1,6 @@
 # Glossary for Nov 2: Introduction to ggplot2 + descriptive statistics I
 
-Publish in Moodle before the lecture. Add each entry to the course Glossary (Concept = term, Definition = text).
+Used only to build the deck's Key terms slide (and the Chinese terms on the slides); not published in Moodle.
 Terms are in the order they appear in the slides; each one is in **bold** on its first slide.
 Terms from Oct 30 that come up again (NA, factor, data frame, package, tidyverse) keep their Oct 30 wording and are not repeated here.
 Chinese terms: only for established statistical, mathematical or biological terms, provided by the instructor; all other terms: `—`.

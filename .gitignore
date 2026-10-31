@@ -17,6 +17,7 @@ Rplots.pdf
 # Local only (repo is public): graded quiz answers and instructor notes
 homework/*.gift
 homework/*_solutions.R
+moodle/
 CLAUDE.md
 
 # Written by students in deck 01 (write.csv demo)
